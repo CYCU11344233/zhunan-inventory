@@ -1,0 +1,11 @@
+# 依技術方案再補充
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.env
+*.db
+*.sqlite
+dist/
+.DS_Store
+Thumbs.db
