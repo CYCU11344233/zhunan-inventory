@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>竹南冷凍倉儲 — 庫存管理 Demo</title>
+<style>
+  /* ====== 基本樣式：大按鈕、大字，給戴手套站在冷凍庫門口的人用 ====== */
+  :root {
+    --bg: #f4f6f8; --card: #fff; --line: #d9dee3; --text: #1f2933; --muted: #62707c;
+    --primary: #1f6f4a; --primary-dark: #165436; --danger: #c0392b; --warn: #d68910; --ok: #1f6f4a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 17px; }
+  header { background: var(--primary); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  header h1 { font-size: 20px; margin: 0; }
+  header select { font-size: 16px; padding: 6px 10px; border-radius: 6px; border: none; }
+  nav { display: flex; overflow-x: auto; background: #fff; border-bottom: 1px solid var(--line); }
+  nav button { flex: 1 0 auto; min-width: 90px; padding: 14px 10px; font-size: 16px; border: none; background: none; color: var(--muted); border-bottom: 3px solid transparent; cursor: pointer; }
+  nav button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; }
+  main { padding: 16px; max-width: 1000px; margin: 0 auto; }
+  section.page { display: none; }
+  section.page.active { display: block; }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  label { display: block; font-weight: bold; margin: 12px 0 6px; }
+  select, input[type=number], input[type=text] { width: 100%; font-size: 18px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+  .btn { display: inline-block; font-size: 18px; padding: 14px 22px; border-radius: 8px; border: none; background: var(--primary); color: #fff; cursor: pointer; margin-top: 14px; }
+  .btn:hover { background: var(--primary-dark); }
+  .btn.secondary { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
+  .btn.danger { background: var(--danger); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+  th { background: #f0f3f5; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 14px; color: #fff; }
+  .tag.warn { background: var(--warn); } .tag.danger { background: var(--danger); } .tag.ok { background: var(--ok); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 32px; font-weight: bold; color: var(--primary); }
+  .stat .lbl { color: var(--muted); font-size: 14px; }
+  .pick { font-size: 20px; line-height: 1.7; padding: 12px; background: #fdf6e3; border-radius: 8px; margin: 8px 0; }
+  .pick b { font-size: 24px; color: var(--primary); }
+  .hint { color: var(--muted); font-size: 15px; }
+  /* 倉庫地圖 */
+  .wh { margin-bottom: 20px; }
+  .wh h3 { margin: 0 0 8px; }
+  .map { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .cell { aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--line); background: #e9ecef; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; cursor: pointer; color: #333; }
+  .cell b { font-size: 13px; }
+  .cell.full { color: #fff; }
+  .cell.old { outline: 3px solid var(--danger); }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; opacity: 0; transition: .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 200px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>竹南冷凍倉儲 庫存系統 <span class="hint" style="color:#cfe;">Demo</span></h1>
+  <select id="role" onchange="renderAll()">
+    <option value="worker">我是搬運工</option>
+    <option value="boss">我是李太太</option>
+  </select>
+</header>
+
+<nav id="nav">
+  <button data-page="overview">總覽</button>
+  <button data-page="inbound">入庫</button>
+  <button data-page="outbound">出庫</button>
+  <button data-page="map">倉庫地圖</button>
+  <button data-page="transfer">移位/盤點</button>
+  <button data-page="log">紀錄</button>
+</nav>
+
+<main>
+  <!-- ========== 總覽 ========== -->
+  <section class="page" id="page-overview">
+    <div class="grid" id="stats"></div>
+    <div class="card">
+      <h2>各品項庫存</h2>
+      <table><thead><tr><th>品項</th><th>籠數</th><th>佔格</th><th>最舊批次</th><th>狀態</th></tr></thead><tbody id="stockTable"></tbody></table>
+    </div>
+    <div class="card" id="alertCard">
+      <h2>⚠ 庫齡警示（超過保存天數）</h2>
+      <table><thead><tr><th>批次</th><th>品項</th><th>櫃位</th><th>籠數</th><th>已放天數</th></tr></thead><tbody id="alertTable"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ========== 入庫 ========== -->
+  <section class="page" id="page-inbound">
+    <div class="card">
+      <h2>入庫：貨到了，要放哪一格？</h2>
+      <label>品項</label>
+      <select id="inProduct" onchange="suggestSlot()"></select>
+      <label>籠數</label>
+      <input type="number" id="inQty" value="5" min="1">
+      <label>放到櫃位（系統建議，可改）</label>
+      <select id="inSlot"></select>
+      <p class="hint" id="inHint"></p>
+      <button class="btn" onclick="doInbound()">✔ 放好了，確認入庫</button>
+    </div>
+  </section>
+
+  <!-- ========== 出庫 ========== -->
+  <section class="page" id="page-outbound">
+    <div class="card">
+      <h2>出庫：客人要貨，去哪一格拿？</h2>
+      <div class="row">
+        <div><label>品項</label><select id="outProduct" onchange="clearPick()"></select></div>
+        <div><label>籠數</label><input type="number" id="outQty" value="6" min="1" oninput="clearPick()"></div>
+      </div>
+      <button class="btn secondary" onclick="makePick()">產生揀貨單（先進先出）</button>
+    </div>
+    <div class="card" id="pickCard" style="display:none">
+      <h2>揀貨單 — 照這個順序搬</h2>
+      <div id="pickList"></div>
+      <p class="hint">系統依「入庫日期」由舊到新排序，最舊的先出。</p>
+      <button class="btn" onclick="confirmPick()">✔ 搬完了，確認出庫</button>
+    </div>
+  </section>
+
+  <!-- ========== 倉庫地圖 ========== -->
+  <section class="page" id="page-map">
+    <div class="card">
+      <p class="hint">點格子看內容。灰 = 空格；紅框 = 超過保存天數。每列 = 一排，每欄 = 層。</p>
+      <div id="maps"></div>
+      <div id="cellInfo" class="pick" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ========== 移位 / 盤點 ========== -->
+  <section class="page" id="page-transfer">
+    <div class="card">
+      <h2>移位：把一堆貨搬到別格</h2>
+      <label>從哪一格</label><select id="trFrom"></select>
+      <label>搬到哪一格（空格）</label><select id="trTo"></select>
+      <button class="btn" onclick="doTransfer()">✔ 確認移位</button>
+    </div>
+    <div class="card">
+      <h2>盤點：實際數量跟系統不一樣</h2>
+      <label>櫃位</label><select id="ckSlot"></select>
+      <label>實際籠數</label><input type="number" id="ckQty" min="0" value="0">
+      <button class="btn danger" onclick="doCheck()">修正為實際數量</button>
+    </div>
+  </section>
+
+  <!-- ========== 紀錄 ========== -->
+  <section class="page" id="page-log">
+    <div class="card">
+      <h2>異動紀錄（永久保存、不可刪除）</h2>
+      <table><thead><tr><th>時間</th><th>類型</th><th>品項</th><th>籠數</th><th>櫃位</th><th>備註</th></tr></thead><tbody id="logTable"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   假資料層 —— 之後接 Node + MySQL 時，這一段換成呼叫 API 即可。
+   資料模型（對應產品方案 §2.1）：
+     products  品項      { id, name, shelfDays, color }
+     slots     櫃位      { id, wh }           id 格式 "A-03-2" = A庫 第3排 第2層
+     batches   批次      { id, productId, inDate }   FIFO 的單位
+     stocks    庫存堆    { batchId, slotId, qty }    一批貨放在某一格
+     movements 異動紀錄  { time, type, product, qty, slot, note }
+   ===================================================================== */
+const today = new Date();
+const d = (daysAgo) => { const x = new Date(today); x.setDate(x.getDate() - daysAgo); return x.toISOString().slice(0, 10); };
+
+const products = [
+  { id: 1, name: '甘藍菜',   shelfDays: 60,  color: '#2e86c1' },
+  { id: 2, name: '高麗菜',   shelfDays: 60,  color: '#28b463' },
+  { id: 3, name: '青花菜',   shelfDays: 45,  color: '#8e44ad' },
+  { id: 4, name: '毛豆',     shelfDays: 120, color: '#d35400' },
+  { id: 5, name: '芒果',     shelfDays: 90,  color: '#f1c40f' },
+  { id: 6, name: '荔枝',     shelfDays: 90,  color: '#e74c3c' },
+  { id: 7, name: '玉米',     shelfDays: 120, color: '#7d6608' },
+];
+
+const slots = [];
+for (const wh of ['A', 'B']) for (let r = 1; r <= 6; r++) for (let l = 1; l <= 3; l++)
+  slots.push({ id: `${wh}-${String(r).padStart(2, '0')}-${l}`, wh });
+
+let batchSeq = 1;
+const batches = [];
+const stocks = [];
+const movements = [];
+
+function newBatchId(date) { return `B${date.replace(/-/g, '')}-${String(batchSeq++).padStart(2, '0')}`; }
+
+// 種子資料：故意讓甘藍菜有三批不同日期，示範 FIFO；並放一批過期的青花菜
+function seed(productId, daysAgo, slotId, qty) {
+  const date = d(daysAgo);
+  const b = { id: newBatchId(date), productId, inDate: date };
+  batches.push(b);
+  stocks.push({ batchId: b.id, slotId, qty });
+  movements.push({ time: date + ' 09:00', type: '入庫', product: pname(productId), qty, slot: slotId, note: '批次 ' + b.id });
+}
+function pname(id) { return products.find(p => p.id === id).name; }
+
+seed(1, 20, 'A-03-2', 3);
+seed(1, 11, 'A-05-1', 8);
+seed(1, 3,  'B-01-1', 5);
+seed(2, 15, 'A-01-1', 10);
+seed(2, 15, 'A-01-2', 10);
+seed(3, 50, 'A-02-3', 4);   // 超過 45 天 → 警示
+seed(4, 30, 'B-02-1', 12);
+seed(5, 7,  'B-03-1', 6);
+seed(5, 2,  'B-03-2', 6);
+seed(6, 40, 'B-04-1', 9);
+seed(7, 25, 'A-06-1', 15);
+movements.sort((a, b) => a.time < b.time ? -1 : 1);
+
+/* ===================== 共用查詢 ===================== */
+const daysBetween = (dateStr) => Math.floor((today - new Date(dateStr)) / 86400000);
+const stockAt = (slotId) => stocks.find(s => s.slotId === slotId && s.qty > 0);
+const batchOf = (s) => batches.find(b => b.id === s.batchId);
+const productOfStock = (s) => products.find(p => p.id === batchOf(s).productId);
+const emptySlots = () => slots.filter(sl => !stockAt(sl.id));
+const isOld = (s) => daysBetween(batchOf(s).inDate) > productOfStock(s).shelfDays;
+function now() { return today.toISOString().slice(0, 10) + ' ' + new Date().toTimeString().slice(0, 5); }
+function log(type, product, qty, slot, note) { movements.push({ time: now(), type, product, qty, slot, note }); }
+
+/* ===================== FIFO 核心 =====================
+   輸入：品項、需要幾籠
+   輸出：[{slotId, batchId, inDate, qty}]，由最舊批次開始扣到滿足需求
+   —— 之後在後端就是同一段邏輯換成 SQL：
+      SELECT ... WHERE product_id=? AND qty>0 ORDER BY in_date ASC, batch_id ASC
+   ===================================================== */
+function fifoAllocate(productId, need) {
+  const candidates = stocks
+    .filter(s => s.qty > 0 && batchOf(s).productId === productId)
+    .sort((a, b) => {
+      const ba = batchOf(a), bb = batchOf(b);
+      return ba.inDate < bb.inDate ? -1 : ba.inDate > bb.inDate ? 1 : ba.id < bb.id ? -1 : 1;
+    });
+  const plan = [];
+  let remain = need;
+  for (const s of candidates) {
+    if (remain <= 0) break;
+    const take = Math.min(s.qty, remain);
+    plan.push({ slotId: s.slotId, batchId: s.batchId, inDate: batchOf(s).inDate, qty: take });
+    remain -= take;
+  }
+  return { plan, shortage: remain };
+}
+
+/* ===================== 畫面：總覽 ===================== */
+function renderOverview() {
+  const boss = document.getElementById('role').value === 'boss';
+  const total = stocks.reduce((a, s) => a + s.qty, 0);
+  const oldCount = stocks.filter(s => s.qty > 0 && isOld(s)).length;
+  document.getElementById('stats').innerHTML = `
+    <div class="card stat"><div class="num">${total}</div><div class="lbl">總籠數</div></div>
+    <div class="card stat"><div class="num">${slots.length - emptySlots().length}/${slots.length}</div><div class="lbl">已用櫃位</div></div>
+    <div class="card stat"><div class="num">${emptySlots().length}</div><div class="lbl">空櫃位</div></div>
+    <div class="card stat"><div class="num" style="color:${oldCount ? 'var(--danger)' : 'var(--ok)'}">${oldCount}</div><div class="lbl">超期批次</div></div>`;
+
+  let rows = '';
+  for (const p of products) {
+    const ss = stocks.filter(s => s.qty > 0 && batchOf(s).productId === p.id);
+    const qty = ss.reduce((a, s) => a + s.qty, 0);
+    if (!qty) { rows += `<tr><td>${p.name}</td><td>0</td><td>0</td><td>—</td><td><span class="tag" style="background:#999">缺貨</span></td></tr>`; continue; }
+    const oldest = ss.map(s => batchOf(s).inDate).sort()[0];
+    const age = daysBetween(oldest);
+    const status = age > p.shelfDays ? '<span class="tag danger">超期</span>' : age > p.shelfDays * 0.8 ? '<span class="tag warn">快到期</span>' : '<span class="tag ok">正常</span>';
+    rows += `<tr><td><span class="tag" style="background:${p.color}">${p.name}</span></td><td>${qty}</td><td>${ss.length}</td><td>${oldest}（${age} 天）</td><td>${status}</td></tr>`;
+  }
+  document.getElementById('stockTable').innerHTML = rows;
+
+  const old = stocks.filter(s => s.qty > 0 && isOld(s));
+  document.getElementById('alertCard').style.display = boss ? '' : 'none';
+  document.getElementById('alertTable').innerHTML = old.length
+    ? old.map(s => `<tr><td>${s.batchId}</td><td>${productOfStock(s).name}</td><td>${s.slotId}</td><td>${s.qty}</td><td style="color:var(--danger)"><b>${daysBetween(batchOf(s).inDate)} 天</b>（上限 ${productOfStock(s).shelfDays}）</td></tr>`).join('')
+    : '<tr><td colspan="5">目前沒有超期批次 👍</td></tr>';
+}
+
+/* ===================== 畫面：入庫 ===================== */
+function renderInbound() {
+  const sel = document.getElementById('inProduct');
+  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  suggestSlot();
+}
+// 建議櫃位：優先同品項所在的那座庫，減少找貨時跑兩邊
+function suggestSlot() {
+  const pid = +document.getElementById('inProduct').value;
+  const empty = emptySlots();
+  const whs = stocks.filter(s => s.qty > 0 && batchOf(s).productId === pid).map(s => s.slotId[0]);
+  const prefer = whs.length ? whs[0] : 'A';
+  const sorted = [...empty].sort((a, b) => (a.wh === prefer ? 0 : 1) - (b.wh === prefer ? 0 : 1));
+  document.getElementById('inSlot').innerHTML = sorted.map(s => `<option value="${s.id}">${s.id}</option>`).join('');
+  document.getElementById('inHint').textContent = whs.length
+    ? `目前 ${pname(pid)} 都在 ${prefer} 庫，建議放同一座庫方便找。`
+    : `目前沒有 ${pname(pid)} 的庫存，隨便挑一個空格。`;
+}
+function doInbound() {
+  const pid = +document.getElementById('inProduct').value;
+  const qty = +document.getElementById('inQty').value;
+  const slotId = document.getElementById('inSlot').value;
+  if (!qty || !slotId) return toast('請輸入籠數並選擇櫃位');
+  const date = today.toISOString().slice(0, 10);
+  const b = { id: newBatchId(date), productId: pid, inDate: date };
+  batches.push(b);
+  stocks.push({ batchId: b.id, slotId, qty });
+  log('入庫', pname(pid), qty, slotId, '批次 ' + b.id);
+  toast(`已入庫：${pname(pid)} ${qty} 籠 → ${slotId}`);
+  renderAll();
+}
+
+/* ===================== 畫面：出庫 ===================== */
+let currentPlan = null;
+function renderOutbound() {
+  document.getElementById('outProduct').innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+function clearPick() { currentPlan = null; document.getElementById('pickCard').style.display = 'none'; }
+function makePick() {
+  const pid = +document.getElementById('outProduct').value;
+  const need = +document.getElementById('outQty').value;
+  const { plan, shortage } = fifoAllocate(pid, need);
+  if (!plan.length) { clearPick(); return toast(`${pname(pid)} 沒有庫存！`); }
+  currentPlan = { pid, plan };
+  document.getElementById('pickList').innerHTML =
+    plan.map((p, i) => `<div class="pick">${i + 1}. 去 <b>${p.slotId}</b> 拿 <b>${p.qty} 籠</b><br><span class="hint">批次 ${p.batchId}（${p.inDate} 入庫，已放 ${daysBetween(p.inDate)} 天）</span></div>`).join('') +
+    (shortage ? `<p style="color:var(--danger)"><b>庫存不足：還差 ${shortage} 籠。</b>請李太太決定要不要接單。</p>` : '');
+  document.getElementById('pickCard').style.display = '';
+}
+function confirmPick() {
+  if (!currentPlan) return;
+  for (const p of currentPlan.plan) {
+    const s = stocks.find(x => x.slotId === p.slotId && x.batchId === p.batchId);
+    s.qty -= p.qty;
+    log('出庫', pname(currentPlan.pid), p.qty, p.slotId, '批次 ' + p.batchId + '（FIFO）');
+  }
+  toast('出庫完成，庫存已更新');
+  clearPick();
+  renderAll();
+}
+
+/* ===================== 畫面：倉庫地圖 ===================== */
+function renderMap() {
+  let html = '';
+  for (const wh of ['A', 'B']) {
+    html += `<div class="wh"><h3>${wh} 庫</h3><div class="map">`;
+    for (const sl of slots.filter(s => s.wh === wh)) {
+      const st = stockAt(sl.id);
+      if (!st) html += `<div class="cell" onclick="showCell('${sl.id}')"><b>${sl.id.slice(2)}</b><span>空</span></div>`;
+      else {
+        const p = productOfStock(st);
+        html += `<div class="cell full ${isOld(st) ? 'old' : ''}" style="background:${p.color}" onclick="showCell('${sl.id}')"><b>${sl.id.slice(2)}</b><span>${p.name}</span><span>${st.qty} 籠</span></div>`;
+      }
+    }
+    html += '</div></div>';
+  }
+  document.getElementById('maps').innerHTML = html;
+}
+function showCell(slotId) {
+  const st = stockAt(slotId);
+  const box = document.getElementById('cellInfo');
+  box.style.display = '';
+  box.innerHTML = st
+    ? `<b>${slotId}</b>：${productOfStock(st).name} ${st.qty} 籠<br><span class="hint">批次 ${st.batchId}，${batchOf(st).inDate} 入庫，已放 ${daysBetween(batchOf(st).inDate)} 天</span>`
+    : `<b>${slotId}</b>：空格`;
+}
+
+/* ===================== 畫面：移位 / 盤點 ===================== */
+function renderTransfer() {
+  const used = stocks.filter(s => s.qty > 0);
+  const opt = (s) => `<option value="${s.slotId}">${s.slotId}｜${productOfStock(s).name} ${s.qty} 籠</option>`;
+  document.getElementById('trFrom').innerHTML = used.map(opt).join('');
+  document.getElementById('trTo').innerHTML = emptySlots().map(s => `<option value="${s.id}">${s.id}</option>`).join('');
+  document.getElementById('ckSlot').innerHTML = used.map(opt).join('');
+}
+function doTransfer() {
+  const from = document.getElementById('trFrom').value, to = document.getElementById('trTo').value;
+  const st = stockAt(from);
+  if (!st || !to) return toast('請選擇來源與目標櫃位');
+  st.slotId = to;
+  log('移位', productOfStock(st).name, st.qty, `${from} → ${to}`, '批次 ' + st.batchId);
+  toast(`已移位：${from} → ${to}`);
+  renderAll();
+}
+function doCheck() {
+  const slotId = document.getElementById('ckSlot').value;
+  const actual = +document.getElementById('ckQty').value;
+  const st = stockAt(slotId);
+  if (!st) return toast('請選擇櫃位');
+  const diff = actual - st.qty;
+  st.qty = actual;
+  log('盤點', productOfStock(st).name, diff, slotId, `系統 ${actual - diff} → 實際 ${actual}`);
+  toast(`已修正 ${slotId} 為 ${actual} 籠（差異 ${diff > 0 ? '+' : ''}${diff}）`);
+  renderAll();
+}
+
+/* ===================== 畫面：紀錄 ===================== */
+function renderLog() {
+  const color = { '入庫': 'var(--ok)', '出庫': 'var(--primary)', '移位': 'var(--warn)', '盤點': 'var(--danger)' };
+  document.getElementById('logTable').innerHTML = [...movements].reverse()
+    .map(m => `<tr><td>${m.time}</td><td><span class="tag" style="background:${color[m.type]}">${m.type}</span></td><td>${m.product}</td><td>${m.qty}</td><td>${m.slot}</td><td class="hint">${m.note}</td></tr>`).join('');
+}
+
+/* ===================== 共用 ===================== */
+function renderAll() { renderOverview(); renderInbound(); renderOutbound(); renderMap(); renderTransfer(); renderLog(); }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+document.querySelectorAll('#nav button').forEach(btn => btn.onclick = () => {
+  document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('page-' + btn.dataset.page).classList.add('active');
+});
+document.querySelector('#nav button').click();
+renderAll();
+</script>
+</body>
+</html>
