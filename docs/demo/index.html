@@ -39,6 +39,7 @@
   .tag.warn { background: var(--warn); } .tag.danger { background: var(--danger); } .tag.ok { background: var(--ok); } .tag.none { background: #999; }
   .stat { text-align: center; }
   .stat .num { font-size: 32px; font-weight: bold; color: var(--primary); }
+  .stat .num small { font-size: 16px; color: var(--muted); font-weight: normal; }
   .stat .lbl { color: var(--muted); font-size: 14px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
   .bar { height: 26px; border-radius: 999px; background: #e3e7eb; overflow: hidden; display: flex; margin: 8px 0; }
@@ -52,19 +53,56 @@
   .item { border: 1px dashed var(--line); border-radius: 8px; padding: 4px 12px 10px; margin-bottom: 10px; background: #fafbfc; }
   .item .title { font-weight: bold; color: var(--primary); margin-top: 8px; }
 
-  /* ====== 倉庫地圖：每排是一座直立貨架（3 層），排與排之間留走道 ====== */
+  /* ====== 總覽：品項卡片（20 種菜也能一眼掃完） ====== */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar h2 { margin: 0; flex: 1 0 100%; }
+  .toolbar input[type=text] { flex: 1 1 150px; width: auto; font-size: 15px; padding: 8px 10px; }
+  .toolbar select { width: auto; font-size: 15px; padding: 8px 10px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer; color: var(--muted); }
+  .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .pcard { border: 1px solid var(--line); border-left: 6px solid #999; border-radius: 8px; padding: 10px 12px; background: #fff; cursor: pointer; }
+  .pcard:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .pcard.danger { border-left-color: var(--danger); }
+  .pcard.warn { border-left-color: var(--warn); }
+  .pcard.ok { border-left-color: var(--ok); }
+  .pcard.none { opacity: .55; }
+  .pcard.open { grid-column: 1 / -1; }          /* 展開時佔滿一整列 */
+  .phead { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+  .pname { font-weight: bold; flex: 1; font-size: 17px; }
+  .pqty { font-size: 24px; font-weight: bold; color: var(--primary); }
+  .pqty small { font-size: 13px; color: var(--muted); font-weight: normal; }
+  .pbar { height: 8px; border-radius: 4px; background: #e3e7eb; display: flex; overflow: hidden; margin: 8px 0 6px; }
+  .pbar i { display: block; height: 100%; }
+  .pbar .danger { background: var(--danger); } .pbar .warn { background: var(--warn); } .pbar .ok { background: var(--ok); }
+  .pmeta { font-size: 14px; margin-top: 4px; }
+  .pmeta .tag { font-size: 12px; padding: 2px 8px; }
+  .pdetail { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; cursor: default; overflow-x: auto; }
+  .pdetail table { font-size: 14px; }
+  .pdetail th, .pdetail td { padding: 6px; white-space: nowrap; }
+  .empty { color: var(--muted); padding: 20px; text-align: center; }
+
+  /* ====== 入 / 出庫切換 ====== */
+  .seg { display: flex; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+  .seg button { flex: 1; font-size: 18px; padding: 12px; border: none; background: #fff; color: var(--primary); cursor: pointer; font-weight: bold; }
+  .seg button.active { background: var(--primary); color: #fff; }
+
+  /* ====== 倉庫地圖：每排是一座直立貨架（3 層），排與排之間留寬走道 ====== */
   .wh { margin-bottom: 18px; }
   .wh h3 { margin: 0 0 6px; }
   .wh-map { display: flex; align-items: flex-end; overflow-x: auto; padding: 6px 0; }
-  .entry { writing-mode: vertical-rl; font-size: 13px; color: var(--muted); padding: 8px 4px; border-right: 3px solid var(--primary); margin-right: 10px; align-self: stretch; display: flex; align-items: center; }
-  .shelf { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; }
-  .shelf + .shelf { border-left: 2px dashed #b9c2cb; }   /* 走道 */
+  .entry { writing-mode: vertical-rl; font-size: 13px; color: var(--muted); padding: 8px 4px; border-right: 3px solid var(--primary); margin-right: 14px; align-self: stretch; display: flex; align-items: center; }
+  .shelf { display: flex; flex-direction: column; gap: 4px; }
+  .shelf + .shelf { margin-left: 26px; }   /* 走道：用空白，不畫線 */
   .shelf .lbl { text-align: center; font-size: 13px; color: var(--muted); margin-top: 4px; }
   .cell { width: 66px; height: 58px; border-radius: 6px; border: 1px solid var(--line); background: #e9ecef; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; cursor: pointer; color: #333; position: relative; user-select: none; }
   .cell b { font-size: 12px; }
   .cell.full { color: #fff; }
   .cell.old { outline: 3px solid var(--danger); }
   .cell.warn { outline: 3px solid var(--warn); }
+  .cell.sel { box-shadow: 0 0 0 3px #1f2933; }
   .cell.over { box-shadow: 0 0 0 3px var(--primary) inset; background: #cfe8da; }
   .cell.dragging { opacity: .4; }
   .cell .step { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; border-radius: 50%; background: var(--danger); color: #fff; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; }
@@ -72,13 +110,11 @@
   .route .cell:not(.hl) { opacity: .3; }
   .route .cell.hl { outline: 3px solid var(--danger); }
 
-  /* 底部資訊面板（點格子後出現，不用往下捲） */
+  /* 底部資訊面板（點格子後出現；點其他地方就關） */
   .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 3px solid var(--primary); padding: 12px 16px; box-shadow: 0 -4px 12px rgba(0,0,0,.12); display: none; z-index: 50; }
   .sheet.show { display: block; }
   .sheet .inner { max-width: 1000px; margin: 0 auto; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
   .sheet .info { font-size: 17px; }
-  .sheet .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .sheet select { width: auto; font-size: 15px; padding: 8px; }
 
   /* 編輯格子的對話框（右鍵） */
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 60; }
@@ -92,11 +128,13 @@
   @media (max-width: 600px) {
     .cell { width: 42px; height: 44px; font-size: 10px; }
     .cell b { font-size: 10px; }
-    .shelf { padding: 0 4px; gap: 3px; }
+    .shelf { gap: 3px; }
+    .shelf + .shelf { margin-left: 6px; }
     #page-map .card { padding: 10px; }
-    .entry { margin-right: 4px; padding: 4px 2px; }
+    .entry { margin-right: 6px; padding: 4px 2px; }
     .shelf .lbl { font-size: 11px; }
   }
+  @media (max-width: 480px) { .pgrid { grid-template-columns: 1fr; } }
 
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; opacity: 0; transition: .3s; pointer-events: none; z-index: 70; }
   .toast.show { opacity: 1; }
@@ -114,8 +152,7 @@
 
 <nav id="nav">
   <button data-page="overview">總覽</button>
-  <button data-page="inbound">入庫</button>
-  <button data-page="outbound">出庫</button>
+  <button data-page="io">入／出庫</button>
   <button data-page="map">倉庫地圖</button>
   <button data-page="log">紀錄</button>
 </nav>
@@ -130,8 +167,22 @@
       <div class="bar-legend" id="barLegend"></div>
     </div>
     <div class="card">
-      <h2>各品項庫存</h2>
-      <table><thead><tr><th>品項</th><th>籠數</th><th>佔格</th><th>最舊批次</th><th>狀態（籠數）</th></tr></thead><tbody id="stockTable"></tbody></table>
+      <div class="toolbar">
+        <h2>各品項庫存 <span class="hint">（點卡片展開各批次）</span></h2>
+        <input type="text" placeholder="搜尋品項…" oninput="ov.q=this.value.trim();renderStockCards()">
+        <select onchange="ov.sort=this.value;renderStockCards()">
+          <option value="issue">有問題的排前面</option>
+          <option value="qty">籠數多 → 少</option>
+          <option value="name">品項名稱</option>
+        </select>
+        <div class="chips" id="chips">
+          <button class="chip active" data-f="all" onclick="setFilter('all')">全部</button>
+          <button class="chip" data-f="danger" onclick="setFilter('danger')">有超期</button>
+          <button class="chip" data-f="warn" onclick="setFilter('warn')">有快到期</button>
+          <button class="chip" data-f="none" onclick="setFilter('none')">缺貨</button>
+        </div>
+      </div>
+      <div class="pgrid" id="stockCards"></div>
     </div>
     <div class="card" id="alertCard">
       <h2>⚠ 庫齡警示</h2>
@@ -139,37 +190,43 @@
     </div>
   </section>
 
-  <!-- ========== 入庫 ========== -->
-  <section class="page" id="page-inbound">
-    <div class="card" id="inForm">
-      <h2>入庫：貨到了，要放哪一格？</h2>
-      <p class="hint">可以一次登記多個品項。櫃位系統會先挑空格，可自行調整。到期日不填則依品項保存天數自動計算；外地轉來、已經放過一陣子的菜，請填原本的到期日。</p>
-      <div id="inRows"></div>
-      <button class="btn secondary small" onclick="addInRow()">＋ 再加一項</button>
-      <br><button class="btn" onclick="doInbound()">✔ 確認入庫，顯示放貨路線</button>
+  <!-- ========== 入 / 出庫（同一頁，用切換鈕選） ========== -->
+  <section class="page" id="page-io">
+    <div class="card" id="ioForm">
+      <div class="seg">
+        <button id="segIn" class="active" onclick="setMode('in')">入庫</button>
+        <button id="segOut" onclick="setMode('out')">出庫</button>
+      </div>
+
+      <div id="ioIn">
+        <h2>貨到了，要放哪一格？</h2>
+        <p class="hint">櫃位已預填空格，可自行改。到期日預設 = 今天 + 保存天數。</p>
+        <div id="inRows"></div>
+        <button class="btn secondary small" onclick="addInRow()">＋ 再加一項</button>
+        <br><button class="btn" onclick="doInbound()">✔ 確認入庫，顯示放貨路線</button>
+      </div>
+
+      <div id="ioOut" style="display:none">
+        <h2>客人要貨，去哪一格拿？</h2>
+        <p class="hint">系統依先進先出決定拿哪幾批，再依櫃位排出走法。</p>
+        <div id="outRows"></div>
+        <button class="btn secondary small" onclick="addOutRow()">＋ 再加一項</button>
+        <br><button class="btn secondary" onclick="makePick()">產生揀貨單（先進先出）</button>
+      </div>
     </div>
+
     <div class="card" id="inResult" style="display:none">
       <h2>放貨路線 — 照編號順序走</h2>
       <div id="inSteps"></div>
       <div id="inRoute" class="route"></div>
-      <button class="btn" onclick="resetInbound()">✔ 放好了，回到入庫</button>
+      <button class="btn" onclick="resetInbound()">✔ 放好了</button>
     </div>
-  </section>
 
-  <!-- ========== 出庫 ========== -->
-  <section class="page" id="page-outbound">
-    <div class="card">
-      <h2>出庫：客人要貨，去哪一格拿？</h2>
-      <p class="hint">可以一次登記多個品項。系統依「先進先出」決定拿哪幾批，再依櫃位位置排出最短走法。</p>
-      <div id="outRows"></div>
-      <button class="btn secondary small" onclick="addOutRow()">＋ 再加一項</button>
-      <br><button class="btn secondary" onclick="makePick()">產生揀貨單（先進先出）</button>
-    </div>
     <div class="card" id="pickCard" style="display:none">
       <h2>揀貨單 — 照編號順序走</h2>
       <div id="pickList"></div>
       <div id="outRoute" class="route"></div>
-      <p class="hint">「拿哪一批」由入庫日期最舊者優先決定；「走的順序」則依櫃位位置由近到遠排列。</p>
+      <p class="hint">拿哪一批：入庫最久的先。走的順序：櫃位由近到遠。</p>
       <button class="btn" onclick="confirmPick()">✔ 搬完了，確認出庫</button>
     </div>
   </section>
@@ -178,8 +235,8 @@
   <section class="page" id="page-map">
     <div class="card">
       <p class="hint">
-        <b>左鍵</b>點格子看內容 ｜ <b>右鍵</b>編輯數量 / 到期日（盤點） ｜ <b>按住拖曳</b>到空格即可移位。<br>
-        灰 = 空格；紅框 = 已超期；橘框 = 快到期。虛線 = 走道。
+        <b>左鍵</b>看內容 ｜ <b>右鍵</b>編輯數量 / 到期日（盤點） ｜ <b>拖曳</b>到空格 = 移位。<br>
+        灰 = 空格；紅框 = 已超期；橘框 = 快到期。
       </p>
       <div id="maps"></div>
     </div>
@@ -194,11 +251,11 @@
   </section>
 </main>
 
-<!-- 底部資訊面板 -->
+<!-- 底部資訊面板（只顯示資訊；編輯用右鍵、移位用拖曳） -->
 <div class="sheet" id="sheet">
   <div class="inner">
     <div class="info" id="sheetInfo"></div>
-    <div class="actions" id="sheetActions"></div>
+    <span class="hint">右鍵編輯 ・ 拖曳移位 ・ 點其他地方關閉</span>
   </div>
 </div>
 
@@ -231,7 +288,7 @@
      products  品項      { id, name, shelfDays, color }
      slots     櫃位      { id, wh, row, level }     id 格式 "A-03-2" = A庫 第3排 第2層
      batches   批次      { id, productId, inDate, expireDate }   FIFO 的單位；到期日可自訂
-     stocks    庫存堆    { batchId, slotId, qty }   一批貨放在某一格
+     stocks    庫存堆    { batchId, slotId, qty }   一批貨放在某一格（一批可拆放多格）
      movements 異動紀錄  { time, type, product, qty, slot, note }
    ===================================================================== */
 const WH = ['A', 'B'], ROWS = 6, LEVELS = 3;
@@ -242,14 +299,28 @@ const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000)
 const pad = (n) => String(n).padStart(2, '0');
 const slotId = (wh, row, level) => `${wh}-${pad(row)}-${level}`;
 
+// 個案說李太太大約經手 20 種蔬果；保存天數是 Demo 假設值，實際由主檔維護
 const products = [
-  { id: 1, name: '甘藍菜',   shelfDays: 60,  color: '#2e86c1' },
-  { id: 2, name: '高麗菜',   shelfDays: 60,  color: '#28b463' },
-  { id: 3, name: '青花菜',   shelfDays: 45,  color: '#8e44ad' },
-  { id: 4, name: '毛豆',     shelfDays: 120, color: '#d35400' },
-  { id: 5, name: '芒果',     shelfDays: 90,  color: '#c9a227' },
-  { id: 6, name: '荔枝',     shelfDays: 90,  color: '#e74c3c' },
-  { id: 7, name: '玉米',     shelfDays: 120, color: '#7d6608' },
+  { id: 1,  name: '甘藍菜',  shelfDays: 60,  color: '#2e86c1' },
+  { id: 2,  name: '高麗菜',  shelfDays: 60,  color: '#28b463' },
+  { id: 3,  name: '青花菜',  shelfDays: 45,  color: '#8e44ad' },
+  { id: 4,  name: '花椰菜',  shelfDays: 45,  color: '#7f8c8d' },
+  { id: 5,  name: '毛豆',    shelfDays: 120, color: '#d35400' },
+  { id: 6,  name: '玉米',    shelfDays: 120, color: '#b7950b' },
+  { id: 7,  name: '芒果',    shelfDays: 90,  color: '#e67e22' },
+  { id: 8,  name: '荔枝',    shelfDays: 90,  color: '#e74c3c' },
+  { id: 9,  name: '鳳梨',    shelfDays: 90,  color: '#c9a227' },
+  { id: 10, name: '芭樂',    shelfDays: 60,  color: '#16a085' },
+  { id: 11, name: '蓮霧',    shelfDays: 45,  color: '#ad1457' },
+  { id: 12, name: '木瓜',    shelfDays: 60,  color: '#ef6c00' },
+  { id: 13, name: '竹筍',    shelfDays: 90,  color: '#6d4c41' },
+  { id: 14, name: '洋蔥',    shelfDays: 150, color: '#a1887f' },
+  { id: 15, name: '紅蘿蔔',  shelfDays: 150, color: '#f4511e' },
+  { id: 16, name: '馬鈴薯',  shelfDays: 150, color: '#5c6bc0' },
+  { id: 17, name: '四季豆',  shelfDays: 60,  color: '#558b2f' },
+  { id: 18, name: '菠菜',    shelfDays: 30,  color: '#1b5e20' },
+  { id: 19, name: '小黃瓜',  shelfDays: 30,  color: '#00897b' },
+  { id: 20, name: '番茄',    shelfDays: 45,  color: '#d32f2f' },
 ];
 const product = (id) => products.find(p => p.id === id);
 
@@ -261,25 +332,42 @@ let batchSeq = 1;
 const batches = [], stocks = [], movements = [];
 const newBatchId = (date) => `B${date.replace(/-/g, '')}-${pad(batchSeq++)}`;
 
-// 種子資料：甘藍菜三批不同日期示範 FIFO；高麗菜一批正常一批超期，示範「狀態要分開看」
-function seed(pid, daysAgo, slot, qty, expireOverride) {
+/* ---------- 種子資料：模擬李太太的真實狀況 ----------
+   20 種蔬果、隨機籠數、隨機入庫日、隨機佔格（籠數多的批次可能拆放兩格）。
+   用固定亂數種子，每次開啟 Demo 資料都一樣，報告時好對照。 */
+let rs = 20260921;
+const rand = () => { rs = (rs + 0x6D2B79F5) | 0; let t = Math.imul(rs ^ (rs >>> 15), 1 | rs); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const randInt = (a, b) => a + Math.floor(rand() * (b - a + 1));
+const pool = slots.map(s => s.id);
+for (let i = pool.length - 1; i > 0; i--) { const j = randInt(0, i); [pool[i], pool[j]] = [pool[j], pool[i]]; }   // 洗牌，讓貨隨機散在兩庫
+
+function seedBatch(pid, daysAgo, qty, expireOverride) {
   const inDate = fmt(new Date(today.getTime() - daysAgo * 86400000));
   const b = { id: newBatchId(inDate), productId: pid, inDate, expireDate: expireOverride || addDays(inDate, product(pid).shelfDays) };
   batches.push(b);
-  stocks.push({ batchId: b.id, slotId: slot, qty });
-  movements.push({ time: inDate + ' 09:00', type: '入庫', product: product(pid).name, qty, slot, note: '批次 ' + b.id });
+  // 8 籠以上的批次有一半機率拆成兩格（一格放不下）
+  const parts = (qty >= 8 && pool.length > 1 && rand() < 0.5) ? [Math.ceil(qty / 2), Math.floor(qty / 2)] : [qty];
+  for (const q of parts) {
+    const slot = pool.pop();
+    stocks.push({ batchId: b.id, slotId: slot, qty: q });
+    movements.push({ time: inDate + ' 09:00', type: '入庫', product: product(pid).name, qty: q, slot, note: '批次 ' + b.id + (expireOverride ? '（自訂到期 ' + expireOverride + '）' : '') });
+  }
 }
-seed(1, 20, 'A-03-2', 3);
-seed(1, 11, 'A-05-1', 8);
-seed(1, 3,  'B-01-1', 5);
-seed(2, 15, 'A-01-1', 10);
-seed(2, 15, 'A-01-2', 10, addDays(fmt(today), -2));   // 外地轉來的高麗菜，到期日已過
-seed(3, 50, 'A-02-3', 4);                              // 青花菜超過 45 天
-seed(4, 30, 'B-02-1', 12);
-seed(5, 7,  'B-03-1', 6);
-seed(5, 2,  'B-03-2', 6);
-seed(6, 80, 'B-04-1', 9);                              // 荔枝快到期（上限 90）
-seed(7, 25, 'A-06-1', 15);
+// 第一輪：每種菜一批（約 1～2 種剛好賣完，示範缺貨）；入庫日最多到保存期限的 1.15 倍，所以會有超期的
+for (const p of products) {
+  if (p.id !== 1 && rand() < 0.15) continue;   // 甘藍菜是個案主角，一定要有貨
+  seedBatch(p.id, randInt(0, Math.round(p.shelfDays * 1.15)), randInt(3, 20));
+}
+// 甘藍菜（個案主角）多補兩批不同日期，出庫時可以看到 FIFO 跨批次拿貨
+seedBatch(1, 20, 3); seedBatch(1, 11, 8);
+// 第二輪：把剩下的格子填到剩 6 格左右，做出「同一種菜好幾批、日期不同」的 FIFO 情境
+const stocked = products.filter(p => batches.some(b => b.productId === p.id));   // 只挑有貨的再進一批，缺貨的維持缺貨
+while (pool.length > 6) {
+  const p = stocked[randInt(0, stocked.length - 1)];
+  seedBatch(p.id, randInt(0, Math.round(p.shelfDays * 0.9)), randInt(3, 15));
+}
+// 外地轉來的一批高麗菜：5 天前才搬進來，但原本的到期日已過 —— 示範「狀態看到期日，不看入庫日」
+seedBatch(2, 5, 6, addDays(fmt(today), -2));
 movements.sort((a, b) => a.time < b.time ? -1 : 1);
 
 /* ===================== 共用查詢 ===================== */
@@ -290,6 +378,7 @@ const emptySlots = () => slots.filter(sl => !stockAt(sl.id));
 const slotObj = (sid) => slots.find(s => s.id === sid);
 const now = () => fmt(today) + ' ' + new Date().toTimeString().slice(0, 5);
 const log = (type, prod, qty, slot, note) => movements.push({ time: now(), type, product: prod, qty, slot, note });
+const byInDate = (a, b) => a.inDate < b.inDate ? -1 : a.inDate > b.inDate ? 1 : a.id < b.id ? -1 : 1;   // FIFO 排序：入庫日 → 批次編號
 
 // 批次狀態：依到期日算，不是依入庫日 —— 這樣自訂到期日的外地菜也能正確判斷
 function statusOf(b) {
@@ -299,7 +388,9 @@ function statusOf(b) {
   if (left <= limit * 0.2) return { key: 'warn', text: '快到期' };
   return { key: 'ok', text: '正常' };
 }
-const ageText = (b) => `已放 ${daysBetween(b.inDate, fmt(today))} 天 / 上限 ${daysBetween(b.inDate, b.expireDate)} 天`;
+const ageDays = (b) => daysBetween(b.inDate, fmt(today));
+const limitDays = (b) => daysBetween(b.inDate, b.expireDate);
+const ageText = (b) => `已放 ${ageDays(b)} 天 / 上限 ${limitDays(b)} 天`;
 
 /* ===================== FIFO 核心 =====================
    輸入：品項、需要幾籠
@@ -310,10 +401,7 @@ const ageText = (b) => `已放 ${daysBetween(b.inDate, fmt(today))} 天 / 上限
 function fifoAllocate(pid, need, reserved = {}) {
   const candidates = stocks
     .filter(s => s.qty - (reserved[s.slotId] || 0) > 0 && batchOf(s).productId === pid)
-    .sort((a, b) => {
-      const ba = batchOf(a), bb = batchOf(b);
-      return ba.inDate < bb.inDate ? -1 : ba.inDate > bb.inDate ? 1 : ba.id < bb.id ? -1 : 1;
-    });
+    .sort((a, b) => byInDate(batchOf(a), batchOf(b)));
   const plan = []; let remain = need;
   for (const s of candidates) {
     if (remain <= 0) break;
@@ -357,6 +445,7 @@ function mapHTML(opts = {}) {
           body = `<b>${pad(r)}-${l}</b><span>${p.name}</span><span>${st.qty} 籠</span>`;
         }
         if (hl && hl[sid]) { cls.push('hl'); body += `<span class="step">${hl[sid]}</span>`; }
+        if (opts.interactive && sid === sheetSid) cls.push('sel');
         const ev = opts.interactive
           ? `onclick="showCell('${sid}')" oncontextmenu="openModal('${sid}');return false;" ` +
             (st ? `draggable="true" ondragstart="dragStart(event,'${sid}')" ondragend="dragEnd(event)"`
@@ -372,15 +461,18 @@ function mapHTML(opts = {}) {
 }
 
 /* ===================== 畫面：總覽 ===================== */
+const ov = { q: '', sort: 'issue', filter: 'all', open: null };   // 品項卡片的搜尋 / 排序 / 篩選 / 展開狀態
+
 function renderOverview() {
   const boss = document.getElementById('role').value === 'boss';
   const live = stocks.filter(s => s.qty > 0);
   const total = live.reduce((a, s) => a + s.qty, 0);
   const used = slots.length - emptySlots().length;
   const oldCount = live.filter(s => statusOf(batchOf(s)).key === 'danger').length;
+  const inStock = products.filter(p => live.some(s => batchOf(s).productId === p.id)).length;
   document.getElementById('stats').innerHTML = `
     <div class="card stat"><div class="num">${total}</div><div class="lbl">總籠數</div></div>
-    <div class="card stat"><div class="num">${products.filter(p => live.some(s => batchOf(s).productId === p.id)).length}</div><div class="lbl">有貨品項</div></div>
+    <div class="card stat"><div class="num">${inStock}<small> / ${products.length}</small></div><div class="lbl">有貨品項</div></div>
     <div class="card stat"><div class="num" style="color:${oldCount ? 'var(--danger)' : 'var(--ok)'}">${oldCount}</div><div class="lbl">超期批次</div></div>`;
 
   const pct = Math.round(used / slots.length * 100);
@@ -388,21 +480,7 @@ function renderOverview() {
   bar.style.width = pct + '%'; bar.textContent = pct + '%';
   document.getElementById('barLegend').innerHTML = `<span>已用 <b>${used}</b> 格</span><span>空 <b>${slots.length - used}</b> 格</span><span>全部 <b>${slots.length}</b> 格</span>`;
 
-  let rows = '';
-  for (const p of products) {
-    const ss = live.filter(s => batchOf(s).productId === p.id);
-    const qty = ss.reduce((a, s) => a + s.qty, 0);
-    if (!qty) { rows += `<tr><td><span class="tag" style="background:${p.color}">${p.name}</span></td><td>0</td><td>0</td><td>—</td><td><span class="tag none">缺貨</span></td></tr>`; continue; }
-    const oldest = ss.map(batchOf).sort((a, b) => a.inDate < b.inDate ? -1 : 1)[0];
-    // 狀態分開算：同一品項可能一批正常、一批超期
-    const byStat = { danger: 0, warn: 0, ok: 0 };
-    for (const s of ss) byStat[statusOf(batchOf(s)).key] += s.qty;
-    const statHtml = [['danger', '超期'], ['warn', '快到期'], ['ok', '正常']]
-      .filter(([k]) => byStat[k]).map(([k, t]) => `<span class="tag ${k}">${t} ${byStat[k]}</span>`).join('');
-    rows += `<tr><td><span class="tag" style="background:${p.color}">${p.name}</span></td><td>${qty}</td><td>${ss.length}</td>
-      <td>${oldest.inDate}<br><span class="hint">${ageText(oldest)}</span></td><td>${statHtml}</td></tr>`;
-  }
-  document.getElementById('stockTable').innerHTML = rows;
+  renderStockCards();
 
   const alerts = live.filter(s => statusOf(batchOf(s)).key !== 'ok')
     .sort((a, b) => batchOf(a).expireDate < batchOf(b).expireDate ? -1 : 1);
@@ -413,7 +491,58 @@ function renderOverview() {
     : '<tr><td colspan="6">目前沒有超期或快到期的批次 👍</td></tr>';
 }
 
-/* ===================== 表單共用：櫃位三段選單 ===================== */
+// 一個品項的彙總：籠數、各狀態籠數、批次清單、最壞狀態
+function summarize(p) {
+  const ss = stocks.filter(s => s.qty > 0 && batchOf(s).productId === p.id);
+  const qty = ss.reduce((a, s) => a + s.qty, 0);
+  const byStat = { danger: 0, warn: 0, ok: 0 };
+  for (const s of ss) byStat[statusOf(batchOf(s)).key] += s.qty;
+  const bl = [...new Set(ss.map(s => s.batchId))].map(id => batches.find(b => b.id === id)).sort(byInDate);
+  const worst = byStat.danger ? 'danger' : byStat.warn ? 'warn' : qty ? 'ok' : 'none';
+  return { p, ss, qty, byStat, batchList: bl, oldest: bl[0], worst };
+}
+
+function setFilter(f) {
+  ov.filter = f;
+  document.querySelectorAll('#chips .chip').forEach(c => c.classList.toggle('active', c.dataset.f === f));
+  renderStockCards();
+}
+function toggleCard(pid) { ov.open = ov.open === pid ? null : pid; renderStockCards(); }
+
+function renderStockCards() {
+  const rank = { danger: 0, warn: 1, ok: 2, none: 3 };
+  let list = products.map(summarize);
+  if (ov.q) list = list.filter(x => x.p.name.includes(ov.q));
+  if (ov.filter === 'none') list = list.filter(x => x.worst === 'none');
+  else if (ov.filter !== 'all') list = list.filter(x => x.byStat[ov.filter] > 0);
+  list.sort(
+    ov.sort === 'qty'  ? (a, b) => b.qty - a.qty :
+    ov.sort === 'name' ? (a, b) => a.p.name.localeCompare(b.p.name, 'zh-Hant') :
+                         (a, b) => rank[a.worst] - rank[b.worst] || b.byStat.danger - a.byStat.danger || b.byStat.warn - a.byStat.warn);
+
+  document.getElementById('stockCards').innerHTML = list.length ? list.map(x => {
+    const p = x.p, open = ov.open === p.id;
+    if (!x.qty) return `<div class="pcard none">
+        <div class="phead"><span class="dot" style="background:${p.color}"></span><span class="pname">${p.name}</span><span class="pqty">0<small> 籠</small></span></div>
+        <div class="pmeta"><span class="tag none">缺貨</span></div></div>`;
+    const bar = ['danger', 'warn', 'ok'].filter(k => x.byStat[k]).map(k => `<i class="${k}" style="width:${x.byStat[k] / x.qty * 100}%"></i>`).join('');
+    const tags = [['danger', '超期'], ['warn', '快到期'], ['ok', '正常']].filter(([k]) => x.byStat[k]).map(([k, t]) => `<span class="tag ${k}">${t} ${x.byStat[k]}</span>`).join('');
+    // 展開：列出各格庫存，照 FIFO 順序編號 —— 出庫時就是照這個順序拿
+    const detail = !open ? '' : `<div class="pdetail" onclick="event.stopPropagation()">
+        <table><thead><tr><th>順序</th><th>批次</th><th>櫃位</th><th>籠數</th><th>入庫日</th><th>已放 / 上限</th><th>到期日</th><th>狀態</th></tr></thead><tbody>
+        ${[...x.ss].sort((a, b) => byInDate(batchOf(a), batchOf(b))).map((s, i) => { const b = batchOf(s), st = statusOf(b);
+          return `<tr><td>${i + 1}</td><td>${b.id}</td><td><b>${s.slotId}</b></td><td>${s.qty}</td><td>${b.inDate}</td><td>${ageDays(b)} / ${limitDays(b)} 天</td><td>${b.expireDate}</td><td><span class="tag ${st.key}">${st.text}</span></td></tr>`; }).join('')}
+        </tbody></table></div>`;
+    return `<div class="pcard ${x.worst} ${open ? 'open' : ''}" onclick="toggleCard(${p.id})">
+        <div class="phead"><span class="dot" style="background:${p.color}"></span><span class="pname">${p.name}</span><span class="pqty">${x.qty}<small> 籠</small></span></div>
+        <div class="pbar">${bar}</div>
+        <div class="pmeta">${tags}</div>
+        <div class="pmeta hint">${x.batchList.length} 批 ・ 佔 ${x.ss.length} 格 ・ 最舊已放 ${ageDays(x.oldest)} / ${limitDays(x.oldest)} 天</div>
+        ${detail}</div>`;
+  }).join('') : '<div class="empty">沒有符合的品項</div>';
+}
+
+/* ===================== 表單共用 ===================== */
 const opts = (arr, sel, fmtFn = (x) => x) => arr.map(v => `<option value="${v}" ${v == sel ? 'selected' : ''}>${fmtFn(v)}</option>`).join('');
 const productOpts = (sel) => products.map(p => `<option value="${p.id}" ${p.id == sel ? 'selected' : ''}>${p.name}</option>`).join('');
 function slotSelects(prefix, i, r) {
@@ -427,13 +556,29 @@ function slotSelects(prefix, i, r) {
 function nextEmptySlot(taken) {
   return emptySlots().find(s => !taken.includes(s.id)) || slots[0];
 }
+// 入 / 出庫切換
+function setMode(m) {
+  document.getElementById('segIn').classList.toggle('active', m === 'in');
+  document.getElementById('segOut').classList.toggle('active', m === 'out');
+  document.getElementById('ioIn').style.display = m === 'in' ? '' : 'none';
+  document.getElementById('ioOut').style.display = m === 'out' ? '' : 'none';
+  document.getElementById('inResult').style.display = 'none';
+  if (m === 'in') clearPick();
+}
 
-/* ===================== 畫面：入庫 ===================== */
+/* ===================== 入庫 ===================== */
 let inRows = [];
+// 到期日三種算法：auto = 今天 + 品項保存天數；date = 指定日期；days = 今天 + N 天
+function expireOf(r) {
+  const t = fmt(today);
+  if (r.expMode === 'date' && r.expire) return r.expire;
+  if (r.expMode === 'days') return addDays(t, +r.expDays || 0);
+  return addDays(t, product(r.pid).shelfDays);
+}
 function addInRow() {
   const taken = inRows.map(r => slotId(r.wh, r.row, r.level));
   const s = nextEmptySlot(taken);
-  inRows.push({ pid: products[0].id, qty: 5, wh: s.wh, row: s.row, level: s.level, expire: '' });
+  inRows.push({ pid: products[0].id, qty: 5, wh: s.wh, row: s.row, level: s.level, expMode: 'auto', expire: '', expDays: 30 });
   renderInbound();
 }
 function removeInRow(i) { inRows.splice(i, 1); renderInbound(); }
@@ -443,12 +588,20 @@ function renderInbound() {
     <div class="item">
       <div class="title">第 ${i + 1} 項</div>
       <div class="row">
-        <div><label>品項</label><select onchange="inRows[${i}].pid=+this.value">${productOpts(r.pid)}</select></div>
+        <div><label>品項</label><select onchange="inRows[${i}].pid=+this.value;renderInbound()">${productOpts(r.pid)}</select></div>
         <div><label>籠數</label><input type="number" min="1" value="${r.qty}" oninput="inRows[${i}].qty=+this.value"></div>
       </div>
       ${slotSelects('inRows', i, r)}
-      <label>到期日（選填）</label>
-      <input type="date" value="${r.expire}" onchange="inRows[${i}].expire=this.value">
+      <div class="row">
+        <div><label>到期日</label><select onchange="inRows[${i}].expMode=this.value;renderInbound()">
+          <option value="auto" ${r.expMode === 'auto' ? 'selected' : ''}>依保存天數（${product(r.pid).shelfDays} 天）</option>
+          <option value="date" ${r.expMode === 'date' ? 'selected' : ''}>指定日期</option>
+          <option value="days" ${r.expMode === 'days' ? 'selected' : ''}>幾天後到期</option>
+        </select></div>
+        ${r.expMode === 'date' ? `<div><label>日期</label><input type="date" value="${r.expire}" onchange="inRows[${i}].expire=this.value;renderInbound()"></div>` :
+          r.expMode === 'days' ? `<div><label>天數</label><input type="number" min="0" value="${r.expDays}" oninput="inRows[${i}].expDays=+this.value;document.getElementById('inExp${i}').textContent=expireOf(inRows[${i}])"></div>` : ''}
+      </div>
+      <p class="hint" style="margin:6px 0 0">預計到期：<b id="inExp${i}">${expireOf(r)}</b></p>
       ${inRows.length > 1 ? `<button class="btn link" onclick="removeInRow(${i})">✕ 移除這項</button>` : ''}
     </div>`).join('');
 }
@@ -464,31 +617,31 @@ function doInbound() {
   }
   const date = fmt(today), steps = [];
   for (const r of inRows) {
-    const sid = slotId(r.wh, r.row, r.level), p = product(r.pid);
-    const b = { id: newBatchId(date), productId: r.pid, inDate: date, expireDate: r.expire || addDays(date, p.shelfDays) };
+    const sid = slotId(r.wh, r.row, r.level), p = product(r.pid), expire = expireOf(r);
+    const b = { id: newBatchId(date), productId: r.pid, inDate: date, expireDate: expire };
     batches.push(b);
     stocks.push({ batchId: b.id, slotId: sid, qty: r.qty });
-    log('入庫', p.name, r.qty, sid, '批次 ' + b.id + (r.expire ? '（自訂到期 ' + r.expire + '）' : ''));
-    steps.push({ slotId: sid, pid: r.pid, qty: r.qty, expire: b.expireDate });
+    log('入庫', p.name, r.qty, sid, '批次 ' + b.id + (r.expMode !== 'auto' ? '（自訂到期 ' + expire + '）' : ''));
+    steps.push({ slotId: sid, pid: r.pid, qty: r.qty, expire });
   }
   steps.sort(walkOrder);
   const hl = {}; steps.forEach((s, i) => hl[s.slotId] = i + 1);
   document.getElementById('inSteps').innerHTML = steps.map((s, i) =>
     `<div class="pick">${i + 1}. 把 <b>${product(s.pid).name} ${s.qty} 籠</b> 放到 <b>${s.slotId}</b><br><span class="hint">到期 ${s.expire}</span></div>`).join('');
   document.getElementById('inRoute').innerHTML = mapHTML({ highlight: hl });
-  document.getElementById('inForm').style.display = 'none';
+  document.getElementById('ioForm').style.display = 'none';
   document.getElementById('inResult').style.display = '';
   toast(`已入庫 ${steps.length} 項`);
   renderOverview(); renderMap(); renderLog();
 }
 function resetInbound() {
   inRows = [];
-  document.getElementById('inForm').style.display = '';
+  document.getElementById('ioForm').style.display = '';
   document.getElementById('inResult').style.display = 'none';
   renderInbound();
 }
 
-/* ===================== 畫面：出庫 ===================== */
+/* ===================== 出庫 ===================== */
 let outRows = [], currentPlan = null;
 function addOutRow() { outRows.push({ pid: products[0].id, qty: 6 }); renderOutbound(); }
 function removeOutRow(i) { outRows.splice(i, 1); renderOutbound(); }
@@ -537,31 +690,34 @@ function confirmPick() {
 }
 
 /* ===================== 畫面：倉庫地圖（含移位 / 盤點） ===================== */
+let sheetSid = null;   // 目前底部面板顯示的是哪一格
 function renderMap() { document.getElementById('maps').innerHTML = mapHTML({ interactive: true }); }
 
-// 左鍵：底部面板顯示格子資訊，附「移位到」與「編輯」（手機沒有右鍵和拖曳時用）
+// 左鍵：底部面板只顯示資訊；再點同一格或點別處就關
 function showCell(sid) {
+  if (sheetSid === sid) return hideSheet();
+  sheetSid = sid;
   const st = stockAt(sid);
-  const sheet = document.getElementById('sheet');
-  sheet.classList.add('show');
-  if (!st) {
-    document.getElementById('sheetInfo').innerHTML = `<b>${sid}</b>：空格`;
-    document.getElementById('sheetActions').innerHTML = `<button class="btn secondary small" onclick="hideSheet()">關閉</button>`;
-    return;
-  }
+  document.getElementById('sheet').classList.add('show');
+  document.querySelectorAll('#maps .cell.sel').forEach(c => c.classList.remove('sel'));
+  event.currentTarget.classList.add('sel');
+  if (!st) { document.getElementById('sheetInfo').innerHTML = `<b>${sid}</b>：空格`; return; }
   const b = batchOf(st), stat = statusOf(b);
   document.getElementById('sheetInfo').innerHTML =
     `<b>${sid}</b>：${productOfStock(st).name} <b>${st.qty} 籠</b> <span class="tag ${stat.key}">${stat.text}</span><br>
      <span class="hint">批次 ${b.id}｜${b.inDate} 入庫｜${ageText(b)}｜到期 ${b.expireDate}</span>`;
-  document.getElementById('sheetActions').innerHTML =
-    `<span>移位到</span><select id="sheetTo">${emptySlots().map(s => `<option value="${s.id}">${s.id}</option>`).join('')}</select>
-     <button class="btn small" onclick="transfer('${sid}', document.getElementById('sheetTo').value)">搬</button>
-     <button class="btn secondary small" onclick="openModal('${sid}')">編輯</button>
-     <button class="btn secondary small" onclick="hideSheet()">關閉</button>`;
 }
-function hideSheet() { document.getElementById('sheet').classList.remove('show'); }
+function hideSheet() {
+  sheetSid = null;
+  document.getElementById('sheet').classList.remove('show');
+  document.querySelectorAll('#maps .cell.sel').forEach(c => c.classList.remove('sel'));
+}
+// 點格子以外的地方（面板本身除外）就關閉面板
+document.addEventListener('click', (e) => {
+  if (sheetSid && !e.target.closest('#maps .cell') && !e.target.closest('#sheet')) hideSheet();
+});
 
-// 移位（拖曳與底部面板共用）
+// 移位（拖曳）
 function transfer(from, to) {
   const st = stockAt(from);
   if (!st) return toast('來源櫃位沒有貨');
@@ -572,7 +728,6 @@ function transfer(from, to) {
   hideSheet();
   renderAll();
 }
-// 拖曳
 let dragFrom = null;
 function dragStart(e, sid) { dragFrom = sid; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
 function dragEnd(e) { e.currentTarget.classList.remove('dragging'); }
