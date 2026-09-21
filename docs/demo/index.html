@@ -109,6 +109,14 @@
   .route .cell { cursor: default; }
   .route .cell:not(.hl) { opacity: .3; }
   .route .cell.hl { outline: 3px solid var(--danger); }
+  .picker .cell.taken { opacity: .35; cursor: not-allowed; }
+  .picker .cell.pickable:hover { background: #cfe8da; }
+  .picker .cell.hl { outline: 3px solid var(--primary); background: #cfe8da; }
+  .picker .cell.hl .step { background: var(--primary); }
+  .picker .wh h3 { display: none; }
+  .whtabs { display: flex; gap: 6px; margin: 10px 0 4px; flex-wrap: wrap; }
+  .whtabs button { font-size: 15px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--primary); background: #fff; color: var(--primary); cursor: pointer; }
+  .whtabs button.active { background: var(--primary); color: #fff; }
 
   /* 底部資訊面板（點格子後出現；點其他地方就關） */
   .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 3px solid var(--primary); padding: 12px 16px; box-shadow: 0 -4px 12px rgba(0,0,0,.12); display: none; z-index: 50; }
@@ -144,10 +152,6 @@
 
 <header>
   <h1>竹南冷凍倉儲 庫存系統 <span class="hint" style="color:#cfe;">Demo</span></h1>
-  <select id="role" onchange="renderAll()">
-    <option value="worker">我是搬運工</option>
-    <option value="boss">我是李太太</option>
-  </select>
 </header>
 
 <nav id="nav">
@@ -184,10 +188,6 @@
       </div>
       <div class="pgrid" id="stockCards"></div>
     </div>
-    <div class="card" id="alertCard">
-      <h2>⚠ 庫齡警示</h2>
-      <table><thead><tr><th>批次</th><th>品項</th><th>櫃位</th><th>籠數</th><th>已放 / 上限</th><th>到期日</th></tr></thead><tbody id="alertTable"></tbody></table>
-    </div>
   </section>
 
   <!-- ========== 入 / 出庫（同一頁，用切換鈕選） ========== -->
@@ -200,7 +200,7 @@
 
       <div id="ioIn">
         <h2>貨到了，要放哪一格？</h2>
-        <p class="hint">櫃位已預填空格，可自行改。到期日預設 = 今天 + 保存天數。</p>
+        <p class="hint">櫃位已預填空格，可用下拉改或直接在地圖上點。到期日預設 = 今天 + 保存天數。</p>
         <div id="inRows"></div>
         <button class="btn secondary small" onclick="addInRow()">＋ 再加一項</button>
         <br><button class="btn" onclick="doInbound()">✔ 確認入庫，顯示放貨路線</button>
@@ -235,7 +235,7 @@
   <section class="page" id="page-map">
     <div class="card">
       <p class="hint">
-        <b>左鍵</b>看內容 ｜ <b>右鍵</b>編輯數量 / 到期日（盤點） ｜ <b>拖曳</b>到空格 = 移位。<br>
+        <b>左鍵</b>看內容 ｜ <b>右鍵</b>編輯數量 / 到期日（盤點） ｜ <b>拖曳</b>到空格 = 移位、拖到有貨的格子 = 互換。<br>
         灰 = 空格；紅框 = 已超期；橘框 = 快到期。
       </p>
       <div id="maps"></div>
@@ -423,11 +423,14 @@ const walkOrder = (a, b) => {
 /* ===================== 倉庫地圖繪製（共用） =====================
    opts.highlight = { 'A-03-2': 1, 'A-05-1': 2 }  → 只亮這些格並標編號（路線圖用）
    opts.interactive = true → 可點、可右鍵、可拖曳（倉庫地圖頁用）
+   opts.wh = 'A' → 只畫這一庫（入庫選格用；之後有 C、D 庫也不會一次全畫）
+   opts.pick = { row: 0, chosen: { 'A-02-1': 1 } } → 選格模式：空格可點，已被表單其他項選走的格子標編號
    ================================================================ */
 function mapHTML(opts = {}) {
   const hl = opts.highlight || null;
   let html = '';
   for (const wh of WH) {
+    if (opts.wh && wh !== opts.wh) continue;
     if (hl && !Object.keys(hl).some(id => id[0] === wh)) continue;   // 路線圖只畫有關的庫
     html += `<div class="wh"><h3>${wh} 庫</h3><div class="wh-map"><div class="entry">入口</div>`;
     for (let r = 1; r <= ROWS; r++) {
@@ -446,11 +449,19 @@ function mapHTML(opts = {}) {
         }
         if (hl && hl[sid]) { cls.push('hl'); body += `<span class="step">${hl[sid]}</span>`; }
         if (opts.interactive && sid === sheetSid) cls.push('sel');
-        const ev = opts.interactive
-          ? `onclick="showCell('${sid}')" oncontextmenu="openModal('${sid}');return false;" ` +
-            (st ? `draggable="true" ondragstart="dragStart(event,'${sid}')" ondragend="dragEnd(event)"`
-                : `ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'${sid}')"`)
-          : '';
+        let ev = '';
+        if (opts.interactive) {
+          // 每一格都可以當拖曳目標：放到空格 = 移位，放到有貨的格子 = 互換
+          ev = `onclick="showCell('${sid}')" oncontextmenu="openModal('${sid}');return false;" ` +
+               `ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'${sid}')" ` +
+               (st ? `draggable="true" ondragstart="dragStart(event,'${sid}')" ondragend="dragEnd(event)"` : '');
+        } else if (opts.pick) {
+          const n = opts.pick.chosen[sid];
+          if (n) { cls.push('hl'); body += `<span class="step">${n}</span>`; }   // 表單裡選到的格子
+          const mine = n === opts.pick.row + 1;
+          if (!st && (!n || mine)) { cls.push('pickable'); ev = `onclick="pickSlot(${opts.pick.row}, '${sid}')"`; }   // 空格、且沒被其他項選走
+          else if (st) cls.push('taken');
+        }
         html += `<div class="${cls.join(' ')}" ${style} ${ev}>${body}</div>`;
       }
       html += `<div class="lbl">第 ${pad(r)} 排</div></div>`;
@@ -464,7 +475,6 @@ function mapHTML(opts = {}) {
 const ov = { q: '', sort: 'issue', filter: 'all', open: null };   // 品項卡片的搜尋 / 排序 / 篩選 / 展開狀態
 
 function renderOverview() {
-  const boss = document.getElementById('role').value === 'boss';
   const live = stocks.filter(s => s.qty > 0);
   const total = live.reduce((a, s) => a + s.qty, 0);
   const used = slots.length - emptySlots().length;
@@ -482,13 +492,6 @@ function renderOverview() {
 
   renderStockCards();
 
-  const alerts = live.filter(s => statusOf(batchOf(s)).key !== 'ok')
-    .sort((a, b) => batchOf(a).expireDate < batchOf(b).expireDate ? -1 : 1);
-  document.getElementById('alertCard').style.display = boss ? '' : 'none';
-  document.getElementById('alertTable').innerHTML = alerts.length
-    ? alerts.map(s => { const b = batchOf(s), st = statusOf(b); return `<tr><td>${b.id}</td><td>${productOfStock(s).name}</td><td>${s.slotId}</td><td>${s.qty}</td>
-        <td>${ageText(b)}</td><td><span class="tag ${st.key}">${st.text}</span> ${b.expireDate}</td></tr>`; }).join('')
-    : '<tr><td colspan="6">目前沒有超期或快到期的批次 👍</td></tr>';
 }
 
 // 一個品項的彙總：籠數、各狀態籠數、批次清單、最壞狀態
@@ -547,9 +550,9 @@ const opts = (arr, sel, fmtFn = (x) => x) => arr.map(v => `<option value="${v}" 
 const productOpts = (sel) => products.map(p => `<option value="${p.id}" ${p.id == sel ? 'selected' : ''}>${p.name}</option>`).join('');
 function slotSelects(prefix, i, r) {
   return `<div class="row">
-    <div><label>庫</label><select onchange="${prefix}[${i}].wh=this.value">${opts(WH, r.wh)}</select></div>
-    <div><label>排</label><select onchange="${prefix}[${i}].row=+this.value">${opts([1,2,3,4,5,6], r.row, pad)}</select></div>
-    <div><label>層</label><select onchange="${prefix}[${i}].level=+this.value">${opts([1,2,3], r.level)}</select></div>
+    <div><label>庫</label><select onchange="${prefix}[${i}].wh=this.value;renderInbound()">${opts(WH, r.wh)}</select></div>
+    <div><label>排</label><select onchange="${prefix}[${i}].row=+this.value;renderInbound()">${opts([1,2,3,4,5,6], r.row, pad)}</select></div>
+    <div><label>層</label><select onchange="${prefix}[${i}].level=+this.value;renderInbound()">${opts([1,2,3], r.level)}</select></div>
   </div>`;
 }
 // 挑一個還沒被表單其他列用掉的空格
@@ -567,7 +570,15 @@ function setMode(m) {
 }
 
 /* ===================== 入庫 ===================== */
-let inRows = [];
+let inRows = [], inPickRow = 0;   // inPickRow：哪一項正在用地圖選格（一次只展開一張地圖）
+// 表單裡各項已選的格子 → { 'A-02-1': 1, 'B-03-3': 2 }
+const chosenSlots = () => Object.fromEntries(inRows.map((r, i) => [slotId(r.wh, r.row, r.level), i + 1]));
+// 地圖上點空格：套到該項的 庫 / 排 / 層
+function pickSlot(i, sid) {
+  const s = slotObj(sid);
+  inRows[i].wh = s.wh; inRows[i].row = s.row; inRows[i].level = s.level;
+  renderInbound();
+}
 // 到期日三種算法：auto = 今天 + 品項保存天數；date = 指定日期；days = 今天 + N 天
 function expireOf(r) {
   const t = fmt(today);
@@ -579,9 +590,10 @@ function addInRow() {
   const taken = inRows.map(r => slotId(r.wh, r.row, r.level));
   const s = nextEmptySlot(taken);
   inRows.push({ pid: products[0].id, qty: 5, wh: s.wh, row: s.row, level: s.level, expMode: 'auto', expire: '', expDays: 30 });
+  if (inPickRow !== null) inPickRow = inRows.length - 1;   // 地圖跟著切到新加的那項
   renderInbound();
 }
-function removeInRow(i) { inRows.splice(i, 1); renderInbound(); }
+function removeInRow(i) { inRows.splice(i, 1); if (inPickRow >= inRows.length) inPickRow = inRows.length - 1; renderInbound(); }
 function renderInbound() {
   if (!inRows.length) { addInRow(); return; }
   document.getElementById('inRows').innerHTML = inRows.map((r, i) => `
@@ -592,6 +604,12 @@ function renderInbound() {
         <div><label>籠數</label><input type="number" min="1" value="${r.qty}" oninput="inRows[${i}].qty=+this.value"></div>
       </div>
       ${slotSelects('inRows', i, r)}
+      ${inPickRow === i ? `<div class="picker">
+          <div class="whtabs">${WH.map(w => `<button class="${w === r.wh ? 'active' : ''}" onclick="inRows[${i}].wh='${w}';renderInbound()">${w} 庫（空 ${emptySlots().filter(s => s.wh === w).length} 格）</button>`).join('')}
+            <button style="margin-left:auto;border-color:var(--line);color:var(--muted)" onclick="inPickRow=null;renderInbound()">收起地圖</button></div>
+          <p class="hint" style="margin:4px 0">點空格就選定；淡的是已有貨；綠框編號 = 這張表單裡各項選的格子。</p>
+          ${mapHTML({ wh: r.wh, pick: { row: i, chosen: chosenSlots() } })}
+        </div>` : `<button class="btn secondary small" style="margin-top:8px" onclick="inPickRow=${i};renderInbound()">📍 從地圖選格</button>`}
       <div class="row">
         <div><label>到期日</label><select onchange="inRows[${i}].expMode=this.value;renderInbound()">
           <option value="auto" ${r.expMode === 'auto' ? 'selected' : ''}>依保存天數（${product(r.pid).shelfDays} 天）</option>
@@ -635,7 +653,7 @@ function doInbound() {
   renderOverview(); renderMap(); renderLog();
 }
 function resetInbound() {
-  inRows = [];
+  inRows = []; inPickRow = 0;
   document.getElementById('ioForm').style.display = '';
   document.getElementById('inResult').style.display = 'none';
   renderInbound();
@@ -717,14 +735,18 @@ document.addEventListener('click', (e) => {
   if (sheetSid && !e.target.closest('#maps .cell') && !e.target.closest('#sheet')) hideSheet();
 });
 
-// 移位（拖曳）
+// 移位（拖曳）：目標是空格就搬過去；目標有貨就兩格互換
 function transfer(from, to) {
-  const st = stockAt(from);
+  if (from === to) return;
+  const st = stockAt(from), other = stockAt(to);
   if (!st) return toast('來源櫃位沒有貨');
-  if (stockAt(to)) return toast(`${to} 已經有貨`);
   st.slotId = to;
-  log('移位', productOfStock(st).name, st.qty, `${from} → ${to}`, '批次 ' + st.batchId);
-  toast(`已移位：${from} → ${to}`);
+  log('移位', productOfStock(st).name, st.qty, `${from} → ${to}`, '批次 ' + st.batchId + (other ? '（與 ' + to + ' 互換）' : ''));
+  if (other) {
+    other.slotId = from;
+    log('移位', productOfStock(other).name, other.qty, `${to} → ${from}`, '批次 ' + other.batchId + '（與 ' + from + ' 互換）');
+  }
+  toast(other ? `已互換：${from} ⇄ ${to}` : `已移位：${from} → ${to}`);
   hideSheet();
   renderAll();
 }
