@@ -18,42 +18,88 @@
   nav { display: flex; overflow-x: auto; background: #fff; border-bottom: 1px solid var(--line); }
   nav button { flex: 1 0 auto; min-width: 90px; padding: 14px 10px; font-size: 16px; border: none; background: none; color: var(--muted); border-bottom: 3px solid transparent; cursor: pointer; }
   nav button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; }
-  main { padding: 16px; max-width: 1000px; margin: 0 auto; }
+  main { padding: 16px 16px 120px; max-width: 1000px; margin: 0 auto; }
   section.page { display: none; }
   section.page.active { display: block; }
   h2 { font-size: 20px; margin: 0 0 12px; }
+  h3 { font-size: 17px; margin: 14px 0 8px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
-  label { display: block; font-weight: bold; margin: 12px 0 6px; }
-  select, input[type=number], input[type=text] { width: 100%; font-size: 18px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+  label { display: block; font-weight: bold; margin: 10px 0 6px; font-size: 15px; }
+  select, input[type=number], input[type=text], input[type=date] { width: 100%; font-size: 17px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
   .btn { display: inline-block; font-size: 18px; padding: 14px 22px; border-radius: 8px; border: none; background: var(--primary); color: #fff; cursor: pointer; margin-top: 14px; }
   .btn:hover { background: var(--primary-dark); }
   .btn.secondary { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
   .btn.danger { background: var(--danger); }
-  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.small { font-size: 15px; padding: 8px 14px; margin-top: 0; }
+  .btn.link { background: none; color: var(--danger); padding: 6px 0; font-size: 15px; margin-top: 6px; }
   table { width: 100%; border-collapse: collapse; font-size: 16px; }
-  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { background: #f0f3f5; }
-  .tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 14px; color: #fff; }
-  .tag.warn { background: var(--warn); } .tag.danger { background: var(--danger); } .tag.ok { background: var(--ok); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 14px; color: #fff; margin: 2px 2px 2px 0; white-space: nowrap; }
+  .tag.warn { background: var(--warn); } .tag.danger { background: var(--danger); } .tag.ok { background: var(--ok); } .tag.none { background: #999; }
   .stat { text-align: center; }
   .stat .num { font-size: 32px; font-weight: bold; color: var(--primary); }
   .stat .lbl { color: var(--muted); font-size: 14px; }
-  .pick { font-size: 20px; line-height: 1.7; padding: 12px; background: #fdf6e3; border-radius: 8px; margin: 8px 0; }
-  .pick b { font-size: 24px; color: var(--primary); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .bar { height: 26px; border-radius: 999px; background: #e3e7eb; overflow: hidden; display: flex; margin: 8px 0; }
+  .bar .used { background: var(--primary); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .bar-legend { display: flex; justify-content: space-between; font-size: 15px; color: var(--muted); }
+  .pick { font-size: 19px; line-height: 1.6; padding: 12px; background: #fdf6e3; border-radius: 8px; margin: 8px 0; }
+  .pick b { font-size: 23px; color: var(--primary); }
   .hint { color: var(--muted); font-size: 15px; }
-  /* 倉庫地圖 */
-  .wh { margin-bottom: 20px; }
-  .wh h3 { margin: 0 0 8px; }
-  .map { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-  .cell { aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--line); background: #e9ecef; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; cursor: pointer; color: #333; }
-  .cell b { font-size: 13px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 140px; }
+  .item { border: 1px dashed var(--line); border-radius: 8px; padding: 4px 12px 10px; margin-bottom: 10px; background: #fafbfc; }
+  .item .title { font-weight: bold; color: var(--primary); margin-top: 8px; }
+
+  /* ====== 倉庫地圖：每排是一座直立貨架（3 層），排與排之間留走道 ====== */
+  .wh { margin-bottom: 18px; }
+  .wh h3 { margin: 0 0 6px; }
+  .wh-map { display: flex; align-items: flex-end; overflow-x: auto; padding: 6px 0; }
+  .entry { writing-mode: vertical-rl; font-size: 13px; color: var(--muted); padding: 8px 4px; border-right: 3px solid var(--primary); margin-right: 10px; align-self: stretch; display: flex; align-items: center; }
+  .shelf { display: flex; flex-direction: column; gap: 4px; padding: 0 10px; }
+  .shelf + .shelf { border-left: 2px dashed #b9c2cb; }   /* 走道 */
+  .shelf .lbl { text-align: center; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .cell { width: 66px; height: 58px; border-radius: 6px; border: 1px solid var(--line); background: #e9ecef; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; cursor: pointer; color: #333; position: relative; user-select: none; }
+  .cell b { font-size: 12px; }
   .cell.full { color: #fff; }
   .cell.old { outline: 3px solid var(--danger); }
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; opacity: 0; transition: .3s; pointer-events: none; }
+  .cell.warn { outline: 3px solid var(--warn); }
+  .cell.over { box-shadow: 0 0 0 3px var(--primary) inset; background: #cfe8da; }
+  .cell.dragging { opacity: .4; }
+  .cell .step { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; border-radius: 50%; background: var(--danger); color: #fff; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .route .cell { cursor: default; }
+  .route .cell:not(.hl) { opacity: .3; }
+  .route .cell.hl { outline: 3px solid var(--danger); }
+
+  /* 底部資訊面板（點格子後出現，不用往下捲） */
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 3px solid var(--primary); padding: 12px 16px; box-shadow: 0 -4px 12px rgba(0,0,0,.12); display: none; z-index: 50; }
+  .sheet.show { display: block; }
+  .sheet .inner { max-width: 1000px; margin: 0 auto; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .sheet .info { font-size: 17px; }
+  .sheet .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .sheet select { width: auto; font-size: 15px; padding: 8px; }
+
+  /* 編輯格子的對話框（右鍵） */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 60; }
+  .modal-bg.show { display: flex; }
+  .modal { background: #fff; border-radius: 10px; padding: 20px; width: min(440px, 92vw); }
+  .qty-ctl { display: flex; gap: 8px; align-items: center; }
+  .qty-ctl button { font-size: 22px; width: 52px; height: 48px; border-radius: 8px; border: 2px solid var(--primary); background: #fff; color: var(--primary); cursor: pointer; }
+  .qty-ctl input { text-align: center; font-size: 22px; }
+
+  /* 手機寬度：格子縮小讓 6 排一次看得完，不用左右捲 */
+  @media (max-width: 600px) {
+    .cell { width: 42px; height: 44px; font-size: 10px; }
+    .cell b { font-size: 10px; }
+    .shelf { padding: 0 4px; gap: 3px; }
+    #page-map .card { padding: 10px; }
+    .entry { margin-right: 4px; padding: 4px 2px; }
+    .shelf .lbl { font-size: 11px; }
+  }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; opacity: 0; transition: .3s; pointer-events: none; z-index: 70; }
   .toast.show { opacity: 1; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .row > * { flex: 1 1 200px; }
 </style>
 </head>
 <body>
@@ -71,7 +117,6 @@
   <button data-page="inbound">入庫</button>
   <button data-page="outbound">出庫</button>
   <button data-page="map">倉庫地圖</button>
-  <button data-page="transfer">移位/盤點</button>
   <button data-page="log">紀錄</button>
 </nav>
 
@@ -80,27 +125,34 @@
   <section class="page" id="page-overview">
     <div class="grid" id="stats"></div>
     <div class="card">
+      <h2>櫃位使用率</h2>
+      <div class="bar"><div class="used" id="barUsed"></div></div>
+      <div class="bar-legend" id="barLegend"></div>
+    </div>
+    <div class="card">
       <h2>各品項庫存</h2>
-      <table><thead><tr><th>品項</th><th>籠數</th><th>佔格</th><th>最舊批次</th><th>狀態</th></tr></thead><tbody id="stockTable"></tbody></table>
+      <table><thead><tr><th>品項</th><th>籠數</th><th>佔格</th><th>最舊批次</th><th>狀態（籠數）</th></tr></thead><tbody id="stockTable"></tbody></table>
     </div>
     <div class="card" id="alertCard">
-      <h2>⚠ 庫齡警示（超過保存天數）</h2>
-      <table><thead><tr><th>批次</th><th>品項</th><th>櫃位</th><th>籠數</th><th>已放天數</th></tr></thead><tbody id="alertTable"></tbody></table>
+      <h2>⚠ 庫齡警示</h2>
+      <table><thead><tr><th>批次</th><th>品項</th><th>櫃位</th><th>籠數</th><th>已放 / 上限</th><th>到期日</th></tr></thead><tbody id="alertTable"></tbody></table>
     </div>
   </section>
 
   <!-- ========== 入庫 ========== -->
   <section class="page" id="page-inbound">
-    <div class="card">
+    <div class="card" id="inForm">
       <h2>入庫：貨到了，要放哪一格？</h2>
-      <label>品項</label>
-      <select id="inProduct" onchange="suggestSlot()"></select>
-      <label>籠數</label>
-      <input type="number" id="inQty" value="5" min="1">
-      <label>放到櫃位（系統建議，可改）</label>
-      <select id="inSlot"></select>
-      <p class="hint" id="inHint"></p>
-      <button class="btn" onclick="doInbound()">✔ 放好了，確認入庫</button>
+      <p class="hint">可以一次登記多個品項。櫃位系統會先挑空格，可自行調整。到期日不填則依品項保存天數自動計算；外地轉來、已經放過一陣子的菜，請填原本的到期日。</p>
+      <div id="inRows"></div>
+      <button class="btn secondary small" onclick="addInRow()">＋ 再加一項</button>
+      <br><button class="btn" onclick="doInbound()">✔ 確認入庫，顯示放貨路線</button>
+    </div>
+    <div class="card" id="inResult" style="display:none">
+      <h2>放貨路線 — 照編號順序走</h2>
+      <div id="inSteps"></div>
+      <div id="inRoute" class="route"></div>
+      <button class="btn" onclick="resetInbound()">✔ 放好了，回到入庫</button>
     </div>
   </section>
 
@@ -108,42 +160,28 @@
   <section class="page" id="page-outbound">
     <div class="card">
       <h2>出庫：客人要貨，去哪一格拿？</h2>
-      <div class="row">
-        <div><label>品項</label><select id="outProduct" onchange="clearPick()"></select></div>
-        <div><label>籠數</label><input type="number" id="outQty" value="6" min="1" oninput="clearPick()"></div>
-      </div>
-      <button class="btn secondary" onclick="makePick()">產生揀貨單（先進先出）</button>
+      <p class="hint">可以一次登記多個品項。系統依「先進先出」決定拿哪幾批，再依櫃位位置排出最短走法。</p>
+      <div id="outRows"></div>
+      <button class="btn secondary small" onclick="addOutRow()">＋ 再加一項</button>
+      <br><button class="btn secondary" onclick="makePick()">產生揀貨單（先進先出）</button>
     </div>
     <div class="card" id="pickCard" style="display:none">
-      <h2>揀貨單 — 照這個順序搬</h2>
+      <h2>揀貨單 — 照編號順序走</h2>
       <div id="pickList"></div>
-      <p class="hint">系統依「入庫日期」由舊到新排序，最舊的先出。</p>
+      <div id="outRoute" class="route"></div>
+      <p class="hint">「拿哪一批」由入庫日期最舊者優先決定；「走的順序」則依櫃位位置由近到遠排列。</p>
       <button class="btn" onclick="confirmPick()">✔ 搬完了，確認出庫</button>
     </div>
   </section>
 
-  <!-- ========== 倉庫地圖 ========== -->
+  <!-- ========== 倉庫地圖（含移位 / 盤點） ========== -->
   <section class="page" id="page-map">
     <div class="card">
-      <p class="hint">點格子看內容。灰 = 空格；紅框 = 超過保存天數。每列 = 一排，每欄 = 層。</p>
+      <p class="hint">
+        <b>左鍵</b>點格子看內容 ｜ <b>右鍵</b>編輯數量 / 到期日（盤點） ｜ <b>按住拖曳</b>到空格即可移位。<br>
+        灰 = 空格；紅框 = 已超期；橘框 = 快到期。虛線 = 走道。
+      </p>
       <div id="maps"></div>
-      <div id="cellInfo" class="pick" style="display:none"></div>
-    </div>
-  </section>
-
-  <!-- ========== 移位 / 盤點 ========== -->
-  <section class="page" id="page-transfer">
-    <div class="card">
-      <h2>移位：把一堆貨搬到別格</h2>
-      <label>從哪一格</label><select id="trFrom"></select>
-      <label>搬到哪一格（空格）</label><select id="trTo"></select>
-      <button class="btn" onclick="doTransfer()">✔ 確認移位</button>
-    </div>
-    <div class="card">
-      <h2>盤點：實際數量跟系統不一樣</h2>
-      <label>櫃位</label><select id="ckSlot"></select>
-      <label>實際籠數</label><input type="number" id="ckQty" min="0" value="0">
-      <button class="btn danger" onclick="doCheck()">修正為實際數量</button>
     </div>
   </section>
 
@@ -156,6 +194,34 @@
   </section>
 </main>
 
+<!-- 底部資訊面板 -->
+<div class="sheet" id="sheet">
+  <div class="inner">
+    <div class="info" id="sheetInfo"></div>
+    <div class="actions" id="sheetActions"></div>
+  </div>
+</div>
+
+<!-- 編輯格子對話框 -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <h2 id="mTitle"></h2>
+    <label>籠數</label>
+    <div class="qty-ctl">
+      <button onclick="bumpQty(-1)">－</button>
+      <input type="number" id="mQty" min="0">
+      <button onclick="bumpQty(1)">＋</button>
+    </div>
+    <label>到期日</label>
+    <input type="date" id="mExpire">
+    <p class="hint" id="mHint"></p>
+    <div class="row">
+      <button class="btn secondary" onclick="closeModal()">取消</button>
+      <button class="btn" onclick="saveModal()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -163,67 +229,77 @@
    假資料層 —— 之後接 Node + MySQL 時，這一段換成呼叫 API 即可。
    資料模型（對應產品方案 §2.1）：
      products  品項      { id, name, shelfDays, color }
-     slots     櫃位      { id, wh }           id 格式 "A-03-2" = A庫 第3排 第2層
-     batches   批次      { id, productId, inDate }   FIFO 的單位
-     stocks    庫存堆    { batchId, slotId, qty }    一批貨放在某一格
+     slots     櫃位      { id, wh, row, level }     id 格式 "A-03-2" = A庫 第3排 第2層
+     batches   批次      { id, productId, inDate, expireDate }   FIFO 的單位；到期日可自訂
+     stocks    庫存堆    { batchId, slotId, qty }   一批貨放在某一格
      movements 異動紀錄  { time, type, product, qty, slot, note }
    ===================================================================== */
-const today = new Date();
-const d = (daysAgo) => { const x = new Date(today); x.setDate(x.getDate() - daysAgo); return x.toISOString().slice(0, 10); };
+const WH = ['A', 'B'], ROWS = 6, LEVELS = 3;
+const today = new Date(); today.setHours(0, 0, 0, 0);
+const fmt = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;   // 用本地日期，避免時區差一天
+const addDays = (dateStr, n) => { const x = new Date(dateStr); x.setDate(x.getDate() + n); return fmt(x); };
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
+const pad = (n) => String(n).padStart(2, '0');
+const slotId = (wh, row, level) => `${wh}-${pad(row)}-${level}`;
 
 const products = [
   { id: 1, name: '甘藍菜',   shelfDays: 60,  color: '#2e86c1' },
   { id: 2, name: '高麗菜',   shelfDays: 60,  color: '#28b463' },
   { id: 3, name: '青花菜',   shelfDays: 45,  color: '#8e44ad' },
   { id: 4, name: '毛豆',     shelfDays: 120, color: '#d35400' },
-  { id: 5, name: '芒果',     shelfDays: 90,  color: '#f1c40f' },
+  { id: 5, name: '芒果',     shelfDays: 90,  color: '#c9a227' },
   { id: 6, name: '荔枝',     shelfDays: 90,  color: '#e74c3c' },
   { id: 7, name: '玉米',     shelfDays: 120, color: '#7d6608' },
 ];
+const product = (id) => products.find(p => p.id === id);
 
 const slots = [];
-for (const wh of ['A', 'B']) for (let r = 1; r <= 6; r++) for (let l = 1; l <= 3; l++)
-  slots.push({ id: `${wh}-${String(r).padStart(2, '0')}-${l}`, wh });
+for (const wh of WH) for (let r = 1; r <= ROWS; r++) for (let l = 1; l <= LEVELS; l++)
+  slots.push({ id: slotId(wh, r, l), wh, row: r, level: l });
 
 let batchSeq = 1;
-const batches = [];
-const stocks = [];
-const movements = [];
+const batches = [], stocks = [], movements = [];
+const newBatchId = (date) => `B${date.replace(/-/g, '')}-${pad(batchSeq++)}`;
 
-function newBatchId(date) { return `B${date.replace(/-/g, '')}-${String(batchSeq++).padStart(2, '0')}`; }
-
-// 種子資料：故意讓甘藍菜有三批不同日期，示範 FIFO；並放一批過期的青花菜
-function seed(productId, daysAgo, slotId, qty) {
-  const date = d(daysAgo);
-  const b = { id: newBatchId(date), productId, inDate: date };
+// 種子資料：甘藍菜三批不同日期示範 FIFO；高麗菜一批正常一批超期，示範「狀態要分開看」
+function seed(pid, daysAgo, slot, qty, expireOverride) {
+  const inDate = fmt(new Date(today.getTime() - daysAgo * 86400000));
+  const b = { id: newBatchId(inDate), productId: pid, inDate, expireDate: expireOverride || addDays(inDate, product(pid).shelfDays) };
   batches.push(b);
-  stocks.push({ batchId: b.id, slotId, qty });
-  movements.push({ time: date + ' 09:00', type: '入庫', product: pname(productId), qty, slot: slotId, note: '批次 ' + b.id });
+  stocks.push({ batchId: b.id, slotId: slot, qty });
+  movements.push({ time: inDate + ' 09:00', type: '入庫', product: product(pid).name, qty, slot, note: '批次 ' + b.id });
 }
-function pname(id) { return products.find(p => p.id === id).name; }
-
 seed(1, 20, 'A-03-2', 3);
 seed(1, 11, 'A-05-1', 8);
 seed(1, 3,  'B-01-1', 5);
 seed(2, 15, 'A-01-1', 10);
-seed(2, 15, 'A-01-2', 10);
-seed(3, 50, 'A-02-3', 4);   // 超過 45 天 → 警示
+seed(2, 15, 'A-01-2', 10, addDays(fmt(today), -2));   // 外地轉來的高麗菜，到期日已過
+seed(3, 50, 'A-02-3', 4);                              // 青花菜超過 45 天
 seed(4, 30, 'B-02-1', 12);
 seed(5, 7,  'B-03-1', 6);
 seed(5, 2,  'B-03-2', 6);
-seed(6, 40, 'B-04-1', 9);
+seed(6, 80, 'B-04-1', 9);                              // 荔枝快到期（上限 90）
 seed(7, 25, 'A-06-1', 15);
 movements.sort((a, b) => a.time < b.time ? -1 : 1);
 
 /* ===================== 共用查詢 ===================== */
-const daysBetween = (dateStr) => Math.floor((today - new Date(dateStr)) / 86400000);
-const stockAt = (slotId) => stocks.find(s => s.slotId === slotId && s.qty > 0);
+const stockAt = (sid) => stocks.find(s => s.slotId === sid && s.qty > 0);
 const batchOf = (s) => batches.find(b => b.id === s.batchId);
-const productOfStock = (s) => products.find(p => p.id === batchOf(s).productId);
+const productOfStock = (s) => product(batchOf(s).productId);
 const emptySlots = () => slots.filter(sl => !stockAt(sl.id));
-const isOld = (s) => daysBetween(batchOf(s).inDate) > productOfStock(s).shelfDays;
-function now() { return today.toISOString().slice(0, 10) + ' ' + new Date().toTimeString().slice(0, 5); }
-function log(type, product, qty, slot, note) { movements.push({ time: now(), type, product, qty, slot, note }); }
+const slotObj = (sid) => slots.find(s => s.id === sid);
+const now = () => fmt(today) + ' ' + new Date().toTimeString().slice(0, 5);
+const log = (type, prod, qty, slot, note) => movements.push({ time: now(), type, product: prod, qty, slot, note });
+
+// 批次狀態：依到期日算，不是依入庫日 —— 這樣自訂到期日的外地菜也能正確判斷
+function statusOf(b) {
+  const left = daysBetween(fmt(today), b.expireDate);
+  const limit = daysBetween(b.inDate, b.expireDate);
+  if (left < 0) return { key: 'danger', text: '超期' };
+  if (left <= limit * 0.2) return { key: 'warn', text: '快到期' };
+  return { key: 'ok', text: '正常' };
+}
+const ageText = (b) => `已放 ${daysBetween(b.inDate, fmt(today))} 天 / 上限 ${daysBetween(b.inDate, b.expireDate)} 天`;
 
 /* ===================== FIFO 核心 =====================
    輸入：品項、需要幾籠
@@ -231,185 +307,327 @@ function log(type, product, qty, slot, note) { movements.push({ time: now(), typ
    —— 之後在後端就是同一段邏輯換成 SQL：
       SELECT ... WHERE product_id=? AND qty>0 ORDER BY in_date ASC, batch_id ASC
    ===================================================== */
-function fifoAllocate(productId, need) {
+function fifoAllocate(pid, need, reserved = {}) {
   const candidates = stocks
-    .filter(s => s.qty > 0 && batchOf(s).productId === productId)
+    .filter(s => s.qty - (reserved[s.slotId] || 0) > 0 && batchOf(s).productId === pid)
     .sort((a, b) => {
       const ba = batchOf(a), bb = batchOf(b);
       return ba.inDate < bb.inDate ? -1 : ba.inDate > bb.inDate ? 1 : ba.id < bb.id ? -1 : 1;
     });
-  const plan = [];
-  let remain = need;
+  const plan = []; let remain = need;
   for (const s of candidates) {
     if (remain <= 0) break;
-    const take = Math.min(s.qty, remain);
-    plan.push({ slotId: s.slotId, batchId: s.batchId, inDate: batchOf(s).inDate, qty: take });
+    const avail = s.qty - (reserved[s.slotId] || 0);
+    const take = Math.min(avail, remain);
+    plan.push({ slotId: s.slotId, batchId: s.batchId, inDate: batchOf(s).inDate, pid, qty: take });
+    reserved[s.slotId] = (reserved[s.slotId] || 0) + take;
     remain -= take;
   }
   return { plan, shortage: remain };
 }
 
+// 走路順序：同一庫內依「排」再依「層」，從入口（第 1 排）往裡走
+const walkOrder = (a, b) => {
+  const sa = slotObj(a.slotId), sb = slotObj(b.slotId);
+  return sa.wh.localeCompare(sb.wh) || sa.row - sb.row || sa.level - sb.level;
+};
+
+/* ===================== 倉庫地圖繪製（共用） =====================
+   opts.highlight = { 'A-03-2': 1, 'A-05-1': 2 }  → 只亮這些格並標編號（路線圖用）
+   opts.interactive = true → 可點、可右鍵、可拖曳（倉庫地圖頁用）
+   ================================================================ */
+function mapHTML(opts = {}) {
+  const hl = opts.highlight || null;
+  let html = '';
+  for (const wh of WH) {
+    if (hl && !Object.keys(hl).some(id => id[0] === wh)) continue;   // 路線圖只畫有關的庫
+    html += `<div class="wh"><h3>${wh} 庫</h3><div class="wh-map"><div class="entry">入口</div>`;
+    for (let r = 1; r <= ROWS; r++) {
+      html += '<div class="shelf">';
+      for (let l = LEVELS; l >= 1; l--) {          // 第 3 層畫在上面，像真的貨架
+        const sid = slotId(wh, r, l);
+        const st = stockAt(sid);
+        const cls = ['cell'];
+        let body = `<b>${pad(r)}-${l}</b><span>空</span>`, style = '';
+        if (st) {
+          const p = productOfStock(st), stat = statusOf(batchOf(st));
+          cls.push('full');
+          if (stat.key === 'danger') cls.push('old'); else if (stat.key === 'warn') cls.push('warn');
+          style = `style="background:${p.color}"`;
+          body = `<b>${pad(r)}-${l}</b><span>${p.name}</span><span>${st.qty} 籠</span>`;
+        }
+        if (hl && hl[sid]) { cls.push('hl'); body += `<span class="step">${hl[sid]}</span>`; }
+        const ev = opts.interactive
+          ? `onclick="showCell('${sid}')" oncontextmenu="openModal('${sid}');return false;" ` +
+            (st ? `draggable="true" ondragstart="dragStart(event,'${sid}')" ondragend="dragEnd(event)"`
+                : `ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'${sid}')"`)
+          : '';
+        html += `<div class="${cls.join(' ')}" ${style} ${ev}>${body}</div>`;
+      }
+      html += `<div class="lbl">第 ${pad(r)} 排</div></div>`;
+    }
+    html += '</div></div>';
+  }
+  return html;
+}
+
 /* ===================== 畫面：總覽 ===================== */
 function renderOverview() {
   const boss = document.getElementById('role').value === 'boss';
-  const total = stocks.reduce((a, s) => a + s.qty, 0);
-  const oldCount = stocks.filter(s => s.qty > 0 && isOld(s)).length;
+  const live = stocks.filter(s => s.qty > 0);
+  const total = live.reduce((a, s) => a + s.qty, 0);
+  const used = slots.length - emptySlots().length;
+  const oldCount = live.filter(s => statusOf(batchOf(s)).key === 'danger').length;
   document.getElementById('stats').innerHTML = `
     <div class="card stat"><div class="num">${total}</div><div class="lbl">總籠數</div></div>
-    <div class="card stat"><div class="num">${slots.length - emptySlots().length}/${slots.length}</div><div class="lbl">已用櫃位</div></div>
-    <div class="card stat"><div class="num">${emptySlots().length}</div><div class="lbl">空櫃位</div></div>
+    <div class="card stat"><div class="num">${products.filter(p => live.some(s => batchOf(s).productId === p.id)).length}</div><div class="lbl">有貨品項</div></div>
     <div class="card stat"><div class="num" style="color:${oldCount ? 'var(--danger)' : 'var(--ok)'}">${oldCount}</div><div class="lbl">超期批次</div></div>`;
+
+  const pct = Math.round(used / slots.length * 100);
+  const bar = document.getElementById('barUsed');
+  bar.style.width = pct + '%'; bar.textContent = pct + '%';
+  document.getElementById('barLegend').innerHTML = `<span>已用 <b>${used}</b> 格</span><span>空 <b>${slots.length - used}</b> 格</span><span>全部 <b>${slots.length}</b> 格</span>`;
 
   let rows = '';
   for (const p of products) {
-    const ss = stocks.filter(s => s.qty > 0 && batchOf(s).productId === p.id);
+    const ss = live.filter(s => batchOf(s).productId === p.id);
     const qty = ss.reduce((a, s) => a + s.qty, 0);
-    if (!qty) { rows += `<tr><td>${p.name}</td><td>0</td><td>0</td><td>—</td><td><span class="tag" style="background:#999">缺貨</span></td></tr>`; continue; }
-    const oldest = ss.map(s => batchOf(s).inDate).sort()[0];
-    const age = daysBetween(oldest);
-    const status = age > p.shelfDays ? '<span class="tag danger">超期</span>' : age > p.shelfDays * 0.8 ? '<span class="tag warn">快到期</span>' : '<span class="tag ok">正常</span>';
-    rows += `<tr><td><span class="tag" style="background:${p.color}">${p.name}</span></td><td>${qty}</td><td>${ss.length}</td><td>${oldest}（${age} 天）</td><td>${status}</td></tr>`;
+    if (!qty) { rows += `<tr><td><span class="tag" style="background:${p.color}">${p.name}</span></td><td>0</td><td>0</td><td>—</td><td><span class="tag none">缺貨</span></td></tr>`; continue; }
+    const oldest = ss.map(batchOf).sort((a, b) => a.inDate < b.inDate ? -1 : 1)[0];
+    // 狀態分開算：同一品項可能一批正常、一批超期
+    const byStat = { danger: 0, warn: 0, ok: 0 };
+    for (const s of ss) byStat[statusOf(batchOf(s)).key] += s.qty;
+    const statHtml = [['danger', '超期'], ['warn', '快到期'], ['ok', '正常']]
+      .filter(([k]) => byStat[k]).map(([k, t]) => `<span class="tag ${k}">${t} ${byStat[k]}</span>`).join('');
+    rows += `<tr><td><span class="tag" style="background:${p.color}">${p.name}</span></td><td>${qty}</td><td>${ss.length}</td>
+      <td>${oldest.inDate}<br><span class="hint">${ageText(oldest)}</span></td><td>${statHtml}</td></tr>`;
   }
   document.getElementById('stockTable').innerHTML = rows;
 
-  const old = stocks.filter(s => s.qty > 0 && isOld(s));
+  const alerts = live.filter(s => statusOf(batchOf(s)).key !== 'ok')
+    .sort((a, b) => batchOf(a).expireDate < batchOf(b).expireDate ? -1 : 1);
   document.getElementById('alertCard').style.display = boss ? '' : 'none';
-  document.getElementById('alertTable').innerHTML = old.length
-    ? old.map(s => `<tr><td>${s.batchId}</td><td>${productOfStock(s).name}</td><td>${s.slotId}</td><td>${s.qty}</td><td style="color:var(--danger)"><b>${daysBetween(batchOf(s).inDate)} 天</b>（上限 ${productOfStock(s).shelfDays}）</td></tr>`).join('')
-    : '<tr><td colspan="5">目前沒有超期批次 👍</td></tr>';
+  document.getElementById('alertTable').innerHTML = alerts.length
+    ? alerts.map(s => { const b = batchOf(s), st = statusOf(b); return `<tr><td>${b.id}</td><td>${productOfStock(s).name}</td><td>${s.slotId}</td><td>${s.qty}</td>
+        <td>${ageText(b)}</td><td><span class="tag ${st.key}">${st.text}</span> ${b.expireDate}</td></tr>`; }).join('')
+    : '<tr><td colspan="6">目前沒有超期或快到期的批次 👍</td></tr>';
+}
+
+/* ===================== 表單共用：櫃位三段選單 ===================== */
+const opts = (arr, sel, fmtFn = (x) => x) => arr.map(v => `<option value="${v}" ${v == sel ? 'selected' : ''}>${fmtFn(v)}</option>`).join('');
+const productOpts = (sel) => products.map(p => `<option value="${p.id}" ${p.id == sel ? 'selected' : ''}>${p.name}</option>`).join('');
+function slotSelects(prefix, i, r) {
+  return `<div class="row">
+    <div><label>庫</label><select onchange="${prefix}[${i}].wh=this.value">${opts(WH, r.wh)}</select></div>
+    <div><label>排</label><select onchange="${prefix}[${i}].row=+this.value">${opts([1,2,3,4,5,6], r.row, pad)}</select></div>
+    <div><label>層</label><select onchange="${prefix}[${i}].level=+this.value">${opts([1,2,3], r.level)}</select></div>
+  </div>`;
+}
+// 挑一個還沒被表單其他列用掉的空格
+function nextEmptySlot(taken) {
+  return emptySlots().find(s => !taken.includes(s.id)) || slots[0];
 }
 
 /* ===================== 畫面：入庫 ===================== */
-function renderInbound() {
-  const sel = document.getElementById('inProduct');
-  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-  suggestSlot();
+let inRows = [];
+function addInRow() {
+  const taken = inRows.map(r => slotId(r.wh, r.row, r.level));
+  const s = nextEmptySlot(taken);
+  inRows.push({ pid: products[0].id, qty: 5, wh: s.wh, row: s.row, level: s.level, expire: '' });
+  renderInbound();
 }
-// 建議櫃位：優先同品項所在的那座庫，減少找貨時跑兩邊
-function suggestSlot() {
-  const pid = +document.getElementById('inProduct').value;
-  const empty = emptySlots();
-  const whs = stocks.filter(s => s.qty > 0 && batchOf(s).productId === pid).map(s => s.slotId[0]);
-  const prefer = whs.length ? whs[0] : 'A';
-  const sorted = [...empty].sort((a, b) => (a.wh === prefer ? 0 : 1) - (b.wh === prefer ? 0 : 1));
-  document.getElementById('inSlot').innerHTML = sorted.map(s => `<option value="${s.id}">${s.id}</option>`).join('');
-  document.getElementById('inHint').textContent = whs.length
-    ? `目前 ${pname(pid)} 都在 ${prefer} 庫，建議放同一座庫方便找。`
-    : `目前沒有 ${pname(pid)} 的庫存，隨便挑一個空格。`;
+function removeInRow(i) { inRows.splice(i, 1); renderInbound(); }
+function renderInbound() {
+  if (!inRows.length) { addInRow(); return; }
+  document.getElementById('inRows').innerHTML = inRows.map((r, i) => `
+    <div class="item">
+      <div class="title">第 ${i + 1} 項</div>
+      <div class="row">
+        <div><label>品項</label><select onchange="inRows[${i}].pid=+this.value">${productOpts(r.pid)}</select></div>
+        <div><label>籠數</label><input type="number" min="1" value="${r.qty}" oninput="inRows[${i}].qty=+this.value"></div>
+      </div>
+      ${slotSelects('inRows', i, r)}
+      <label>到期日（選填）</label>
+      <input type="date" value="${r.expire}" onchange="inRows[${i}].expire=this.value">
+      ${inRows.length > 1 ? `<button class="btn link" onclick="removeInRow(${i})">✕ 移除這項</button>` : ''}
+    </div>`).join('');
 }
 function doInbound() {
-  const pid = +document.getElementById('inProduct').value;
-  const qty = +document.getElementById('inQty').value;
-  const slotId = document.getElementById('inSlot').value;
-  if (!qty || !slotId) return toast('請輸入籠數並選擇櫃位');
-  const date = today.toISOString().slice(0, 10);
-  const b = { id: newBatchId(date), productId: pid, inDate: date };
-  batches.push(b);
-  stocks.push({ batchId: b.id, slotId, qty });
-  log('入庫', pname(pid), qty, slotId, '批次 ' + b.id);
-  toast(`已入庫：${pname(pid)} ${qty} 籠 → ${slotId}`);
-  renderAll();
+  // 先檢查：籠數 > 0、櫃位是空的、表單內沒有重複櫃位
+  const seen = new Set();
+  for (const [i, r] of inRows.entries()) {
+    const sid = slotId(r.wh, r.row, r.level);
+    if (!r.qty || r.qty < 1) return toast(`第 ${i + 1} 項籠數不正確`);
+    if (stockAt(sid)) return toast(`第 ${i + 1} 項：${sid} 已經有貨，請換一格`);
+    if (seen.has(sid)) return toast(`第 ${i + 1} 項：${sid} 跟其他項重複`);
+    seen.add(sid);
+  }
+  const date = fmt(today), steps = [];
+  for (const r of inRows) {
+    const sid = slotId(r.wh, r.row, r.level), p = product(r.pid);
+    const b = { id: newBatchId(date), productId: r.pid, inDate: date, expireDate: r.expire || addDays(date, p.shelfDays) };
+    batches.push(b);
+    stocks.push({ batchId: b.id, slotId: sid, qty: r.qty });
+    log('入庫', p.name, r.qty, sid, '批次 ' + b.id + (r.expire ? '（自訂到期 ' + r.expire + '）' : ''));
+    steps.push({ slotId: sid, pid: r.pid, qty: r.qty, expire: b.expireDate });
+  }
+  steps.sort(walkOrder);
+  const hl = {}; steps.forEach((s, i) => hl[s.slotId] = i + 1);
+  document.getElementById('inSteps').innerHTML = steps.map((s, i) =>
+    `<div class="pick">${i + 1}. 把 <b>${product(s.pid).name} ${s.qty} 籠</b> 放到 <b>${s.slotId}</b><br><span class="hint">到期 ${s.expire}</span></div>`).join('');
+  document.getElementById('inRoute').innerHTML = mapHTML({ highlight: hl });
+  document.getElementById('inForm').style.display = 'none';
+  document.getElementById('inResult').style.display = '';
+  toast(`已入庫 ${steps.length} 項`);
+  renderOverview(); renderMap(); renderLog();
+}
+function resetInbound() {
+  inRows = [];
+  document.getElementById('inForm').style.display = '';
+  document.getElementById('inResult').style.display = 'none';
+  renderInbound();
 }
 
 /* ===================== 畫面：出庫 ===================== */
-let currentPlan = null;
+let outRows = [], currentPlan = null;
+function addOutRow() { outRows.push({ pid: products[0].id, qty: 6 }); renderOutbound(); }
+function removeOutRow(i) { outRows.splice(i, 1); renderOutbound(); }
 function renderOutbound() {
-  document.getElementById('outProduct').innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  if (!outRows.length) { addOutRow(); return; }
+  clearPick();
+  document.getElementById('outRows').innerHTML = outRows.map((r, i) => `
+    <div class="item">
+      <div class="title">第 ${i + 1} 項</div>
+      <div class="row">
+        <div><label>品項</label><select onchange="outRows[${i}].pid=+this.value;clearPick()">${productOpts(r.pid)}</select></div>
+        <div><label>籠數</label><input type="number" min="1" value="${r.qty}" oninput="outRows[${i}].qty=+this.value;clearPick()"></div>
+      </div>
+      ${outRows.length > 1 ? `<button class="btn link" onclick="removeOutRow(${i})">✕ 移除這項</button>` : ''}
+    </div>`).join('');
 }
 function clearPick() { currentPlan = null; document.getElementById('pickCard').style.display = 'none'; }
 function makePick() {
-  const pid = +document.getElementById('outProduct').value;
-  const need = +document.getElementById('outQty').value;
-  const { plan, shortage } = fifoAllocate(pid, need);
-  if (!plan.length) { clearPick(); return toast(`${pname(pid)} 沒有庫存！`); }
-  currentPlan = { pid, plan };
+  const reserved = {}, plan = [], shortages = [];
+  for (const r of outRows) {
+    if (!r.qty || r.qty < 1) return toast('籠數不正確');
+    const res = fifoAllocate(r.pid, r.qty, reserved);
+    plan.push(...res.plan);
+    if (res.shortage) shortages.push(`${product(r.pid).name} 差 ${res.shortage} 籠`);
+  }
+  if (!plan.length) { clearPick(); return toast('這些品項都沒有庫存！'); }
+  plan.sort(walkOrder);
+  currentPlan = plan;
+  const hl = {}; plan.forEach((p, i) => hl[p.slotId] = i + 1);
   document.getElementById('pickList').innerHTML =
-    plan.map((p, i) => `<div class="pick">${i + 1}. 去 <b>${p.slotId}</b> 拿 <b>${p.qty} 籠</b><br><span class="hint">批次 ${p.batchId}（${p.inDate} 入庫，已放 ${daysBetween(p.inDate)} 天）</span></div>`).join('') +
-    (shortage ? `<p style="color:var(--danger)"><b>庫存不足：還差 ${shortage} 籠。</b>請李太太決定要不要接單。</p>` : '');
+    plan.map((p, i) => `<div class="pick">${i + 1}. 去 <b>${p.slotId}</b> 拿 <b>${product(p.pid).name} ${p.qty} 籠</b><br><span class="hint">批次 ${p.batchId}（${p.inDate} 入庫，已放 ${daysBetween(p.inDate, fmt(today))} 天）</span></div>`).join('') +
+    (shortages.length ? `<p style="color:var(--danger)"><b>庫存不足：${shortages.join('、')}。</b>請李太太決定要不要接單。</p>` : '');
+  document.getElementById('outRoute').innerHTML = mapHTML({ highlight: hl });
   document.getElementById('pickCard').style.display = '';
 }
 function confirmPick() {
   if (!currentPlan) return;
-  for (const p of currentPlan.plan) {
+  for (const p of currentPlan) {
     const s = stocks.find(x => x.slotId === p.slotId && x.batchId === p.batchId);
     s.qty -= p.qty;
-    log('出庫', pname(currentPlan.pid), p.qty, p.slotId, '批次 ' + p.batchId + '（FIFO）');
+    log('出庫', product(p.pid).name, p.qty, p.slotId, '批次 ' + p.batchId + '（FIFO）');
   }
   toast('出庫完成，庫存已更新');
-  clearPick();
+  outRows = [];
   renderAll();
 }
 
-/* ===================== 畫面：倉庫地圖 ===================== */
-function renderMap() {
-  let html = '';
-  for (const wh of ['A', 'B']) {
-    html += `<div class="wh"><h3>${wh} 庫</h3><div class="map">`;
-    for (const sl of slots.filter(s => s.wh === wh)) {
-      const st = stockAt(sl.id);
-      if (!st) html += `<div class="cell" onclick="showCell('${sl.id}')"><b>${sl.id.slice(2)}</b><span>空</span></div>`;
-      else {
-        const p = productOfStock(st);
-        html += `<div class="cell full ${isOld(st) ? 'old' : ''}" style="background:${p.color}" onclick="showCell('${sl.id}')"><b>${sl.id.slice(2)}</b><span>${p.name}</span><span>${st.qty} 籠</span></div>`;
-      }
-    }
-    html += '</div></div>';
-  }
-  document.getElementById('maps').innerHTML = html;
-}
-function showCell(slotId) {
-  const st = stockAt(slotId);
-  const box = document.getElementById('cellInfo');
-  box.style.display = '';
-  box.innerHTML = st
-    ? `<b>${slotId}</b>：${productOfStock(st).name} ${st.qty} 籠<br><span class="hint">批次 ${st.batchId}，${batchOf(st).inDate} 入庫，已放 ${daysBetween(batchOf(st).inDate)} 天</span>`
-    : `<b>${slotId}</b>：空格`;
-}
+/* ===================== 畫面：倉庫地圖（含移位 / 盤點） ===================== */
+function renderMap() { document.getElementById('maps').innerHTML = mapHTML({ interactive: true }); }
 
-/* ===================== 畫面：移位 / 盤點 ===================== */
-function renderTransfer() {
-  const used = stocks.filter(s => s.qty > 0);
-  const opt = (s) => `<option value="${s.slotId}">${s.slotId}｜${productOfStock(s).name} ${s.qty} 籠</option>`;
-  document.getElementById('trFrom').innerHTML = used.map(opt).join('');
-  document.getElementById('trTo').innerHTML = emptySlots().map(s => `<option value="${s.id}">${s.id}</option>`).join('');
-  document.getElementById('ckSlot').innerHTML = used.map(opt).join('');
+// 左鍵：底部面板顯示格子資訊，附「移位到」與「編輯」（手機沒有右鍵和拖曳時用）
+function showCell(sid) {
+  const st = stockAt(sid);
+  const sheet = document.getElementById('sheet');
+  sheet.classList.add('show');
+  if (!st) {
+    document.getElementById('sheetInfo').innerHTML = `<b>${sid}</b>：空格`;
+    document.getElementById('sheetActions').innerHTML = `<button class="btn secondary small" onclick="hideSheet()">關閉</button>`;
+    return;
+  }
+  const b = batchOf(st), stat = statusOf(b);
+  document.getElementById('sheetInfo').innerHTML =
+    `<b>${sid}</b>：${productOfStock(st).name} <b>${st.qty} 籠</b> <span class="tag ${stat.key}">${stat.text}</span><br>
+     <span class="hint">批次 ${b.id}｜${b.inDate} 入庫｜${ageText(b)}｜到期 ${b.expireDate}</span>`;
+  document.getElementById('sheetActions').innerHTML =
+    `<span>移位到</span><select id="sheetTo">${emptySlots().map(s => `<option value="${s.id}">${s.id}</option>`).join('')}</select>
+     <button class="btn small" onclick="transfer('${sid}', document.getElementById('sheetTo').value)">搬</button>
+     <button class="btn secondary small" onclick="openModal('${sid}')">編輯</button>
+     <button class="btn secondary small" onclick="hideSheet()">關閉</button>`;
 }
-function doTransfer() {
-  const from = document.getElementById('trFrom').value, to = document.getElementById('trTo').value;
+function hideSheet() { document.getElementById('sheet').classList.remove('show'); }
+
+// 移位（拖曳與底部面板共用）
+function transfer(from, to) {
   const st = stockAt(from);
-  if (!st || !to) return toast('請選擇來源與目標櫃位');
+  if (!st) return toast('來源櫃位沒有貨');
+  if (stockAt(to)) return toast(`${to} 已經有貨`);
   st.slotId = to;
   log('移位', productOfStock(st).name, st.qty, `${from} → ${to}`, '批次 ' + st.batchId);
   toast(`已移位：${from} → ${to}`);
+  hideSheet();
   renderAll();
 }
-function doCheck() {
-  const slotId = document.getElementById('ckSlot').value;
-  const actual = +document.getElementById('ckQty').value;
-  const st = stockAt(slotId);
-  if (!st) return toast('請選擇櫃位');
-  const diff = actual - st.qty;
-  st.qty = actual;
-  log('盤點', productOfStock(st).name, diff, slotId, `系統 ${actual - diff} → 實際 ${actual}`);
-  toast(`已修正 ${slotId} 為 ${actual} 籠（差異 ${diff > 0 ? '+' : ''}${diff}）`);
+// 拖曳
+let dragFrom = null;
+function dragStart(e, sid) { dragFrom = sid; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+function dragEnd(e) { e.currentTarget.classList.remove('dragging'); }
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('over'); }
+function drop(e, sid) { e.preventDefault(); e.currentTarget.classList.remove('over'); if (dragFrom) transfer(dragFrom, sid); dragFrom = null; }
+
+// 右鍵：編輯數量 / 到期日（= 盤點）
+let modalSlot = null;
+function openModal(sid) {
+  const st = stockAt(sid);
+  if (!st) return toast('空格沒有東西可以編輯，請用「入庫」');
+  modalSlot = sid;
+  const b = batchOf(st);
+  document.getElementById('mTitle').textContent = `${sid}：${productOfStock(st).name}`;
+  document.getElementById('mQty').value = st.qty;
+  document.getElementById('mExpire').value = b.expireDate;
+  document.getElementById('mHint').textContent = `批次 ${b.id}，${b.inDate} 入庫。籠數改成 0 會清空這格。`;
+  document.getElementById('modalBg').classList.add('show');
+}
+function bumpQty(n) { const el = document.getElementById('mQty'); el.value = Math.max(0, (+el.value || 0) + n); }
+function closeModal() { document.getElementById('modalBg').classList.remove('show'); modalSlot = null; }
+function saveModal() {
+  const st = stockAt(modalSlot); if (!st) return closeModal();
+  const b = batchOf(st), p = productOfStock(st);
+  const qty = +document.getElementById('mQty').value, expire = document.getElementById('mExpire').value;
+  if (qty !== st.qty) {
+    log('盤點', p.name, qty - st.qty, modalSlot, `系統 ${st.qty} → 實際 ${qty}`);
+    st.qty = qty;
+  }
+  if (expire && expire !== b.expireDate) {
+    log('改到期日', p.name, st.qty, modalSlot, `${b.expireDate} → ${expire}`);
+    b.expireDate = expire;
+  }
+  toast('已更新');
+  closeModal(); hideSheet();
   renderAll();
 }
 
 /* ===================== 畫面：紀錄 ===================== */
 function renderLog() {
-  const color = { '入庫': 'var(--ok)', '出庫': 'var(--primary)', '移位': 'var(--warn)', '盤點': 'var(--danger)' };
+  const color = { '入庫': 'var(--ok)', '出庫': 'var(--primary)', '移位': 'var(--warn)', '盤點': 'var(--danger)', '改到期日': '#6c5ce7' };
   document.getElementById('logTable').innerHTML = [...movements].reverse()
     .map(m => `<tr><td>${m.time}</td><td><span class="tag" style="background:${color[m.type]}">${m.type}</span></td><td>${m.product}</td><td>${m.qty}</td><td>${m.slot}</td><td class="hint">${m.note}</td></tr>`).join('');
 }
 
 /* ===================== 共用 ===================== */
-function renderAll() { renderOverview(); renderInbound(); renderOutbound(); renderMap(); renderTransfer(); renderLog(); }
+function renderAll() { renderOverview(); renderInbound(); renderOutbound(); renderMap(); renderLog(); }
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
 document.querySelectorAll('#nav button').forEach(btn => btn.onclick = () => {
   document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('page-' + btn.dataset.page).classList.add('active');
+  if (btn.dataset.page !== 'map') hideSheet();
 });
 document.querySelector('#nav button').click();
 renderAll();
