@@ -69,7 +69,11 @@
   .pcard.warn { border-left-color: var(--warn); }
   .pcard.ok { border-left-color: var(--ok); }
   .pcard.none { opacity: .55; }
+  .pcard.none.open { opacity: 1; }
   .pcard.open { grid-column: 1 / -1; }          /* 展開時佔滿一整列 */
+  .pcard.add { border: 2px dashed var(--primary); color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; min-height: 96px; background: #f6faf8; }
+  .pcard.add span { font-size: 26px; line-height: 1; }
+  .pactions { margin-top: 10px; display: flex; gap: 8px; }
   .phead { display: flex; align-items: center; gap: 8px; }
   .dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
   .pname { font-weight: bold; flex: 1; font-size: 17px; }
@@ -168,6 +172,11 @@
   .qty-ctl { display: flex; gap: 8px; align-items: center; }
   .qty-ctl button { font-size: 22px; width: 52px; height: 48px; border-radius: 8px; border: 2px solid var(--primary); background: #fff; color: var(--primary); cursor: pointer; }
   .qty-ctl input { text-align: center; font-size: 22px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatch { width: 34px; height: 34px; border-radius: 7px; border: 3px solid transparent; cursor: pointer; padding: 0; }
+  .swatch.active { border-color: var(--text); }
+  .delzone { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 6px; }
+  .delzone p { font-size: 15px; margin: 8px 0; }
 
   /* 手機寬度：格子縮小讓 6 排一次看得完，不用左右捲 */
   @media (max-width: 600px) {
@@ -337,6 +346,31 @@
   </div>
 </div>
 
+<!-- 新增 / 編輯 / 刪除品項（總覽卡片） -->
+<div class="modal-bg" id="pmBg" onclick="if(event.target===this) closeProdModal()">
+  <div class="modal">
+    <h2 id="pmTitle"></h2>
+    <label>名稱</label>
+    <input type="text" id="pmName" maxlength="10" placeholder="例如：高麗菜">
+    <label>保存天數（入庫後幾天到期）</label>
+    <input type="number" id="pmDays" min="1">
+    <label>顏色（地圖和卡片上代表這個品項）</label>
+    <div class="swatches" id="pmSwatches"></div>
+    <div class="row">
+      <button class="btn secondary" onclick="closeProdModal()">取消</button>
+      <button class="btn" onclick="saveProdModal()">儲存</button>
+    </div>
+    <div class="delzone" id="pmDelete">
+      <button class="btn link" id="pmDelBtn" onclick="document.getElementById('pmConfirm').style.display='';this.style.display='none'"></button>
+      <div id="pmConfirm" style="display:none">
+        <p>刪除後這個品項不會再出現在選單和總覽，歷史紀錄會保留（Ctrl+Z 可復原）。<br>請輸入品項名稱確認：</p>
+        <input type="text" id="pmConfirmName">
+        <button class="btn danger" style="margin-top:10px" onclick="deleteProduct()">確定刪除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -383,6 +417,9 @@ const products = [
   { id: 20, name: '番茄',    shelfDays: 45,  color: '#d32f2f' },
 ];
 const product = (id) => products.find(p => p.id === id);
+const activeProducts = () => products.filter(p => !p.deleted);   // 刪除是軟刪除：舊批次、舊紀錄還查得到
+// 新增品項時可選的顏色（先列現有 20 種，再補幾個，系統會自動挑沒用過的）
+const PALETTE = [...products.map(p => p.color), '#0097a7', '#c2185b', '#fbc02d', '#455a64', '#7cb342', '#ff7043', '#3949ab', '#795548'];
 
 const slots = [];
 for (const wh of WH) for (let r = 1; r <= ROWS; r++) for (let l = 1; l <= LEVELS; l++)
@@ -447,8 +484,9 @@ const stockQty = (pid) => stocks.filter(s => s.qty > 0 && batchOf(s).productId =
    redo：套回 after 快照，取消標記，補一筆「重做」。
    —— 之後接後端時，復原就是送一筆反向交易，紀錄同樣不刪。 */
 const undoStack = [], redoStack = [];
-const snapshot = () => ({ batches: batches.map(b => ({ ...b })), stocks: stocks.map(s => ({ ...s })), batchSeq });
+const snapshot = () => ({ products: products.map(p => ({ ...p })), batches: batches.map(b => ({ ...b })), stocks: stocks.map(s => ({ ...s })), batchSeq });
 function restore(snap) {
+  products.splice(0, products.length, ...snap.products.map(p => ({ ...p })));
   batches.splice(0, batches.length, ...snap.batches.map(b => ({ ...b })));
   stocks.splice(0, stocks.length, ...snap.stocks.map(s => ({ ...s })));
   batchSeq = snap.batchSeq;
@@ -588,10 +626,10 @@ function renderOverview() {
   const total = live.reduce((a, s) => a + s.qty, 0);
   const used = slots.length - emptySlots().length;
   const oldCount = live.filter(s => statusOf(batchOf(s)).key === 'danger').length;
-  const inStock = products.filter(p => live.some(s => batchOf(s).productId === p.id)).length;
+  const inStock = activeProducts().filter(p => live.some(s => batchOf(s).productId === p.id)).length;
   document.getElementById('stats').innerHTML = `
     <div class="card stat"><div class="num">${total}</div><div class="lbl">總籠數</div></div>
-    <div class="card stat"><div class="num">${inStock}<small> / ${products.length}</small></div><div class="lbl">有貨品項</div></div>
+    <div class="card stat"><div class="num">${inStock}<small> / ${activeProducts().length}</small></div><div class="lbl">有貨品項</div></div>
     <div class="card stat"><div class="num" style="color:${oldCount ? 'var(--danger)' : 'var(--ok)'}">${oldCount}</div><div class="lbl">超期批次</div></div>`;
 
   const pct = Math.round(used / slots.length * 100);
@@ -623,7 +661,7 @@ function toggleCard(pid) { ov.open = ov.open === pid ? null : pid; renderStockCa
 
 function renderStockCards() {
   const rank = { danger: 0, warn: 1, ok: 2, none: 3 };
-  let list = products.map(summarize);
+  let list = activeProducts().map(summarize);
   if (ov.q) list = list.filter(x => x.p.name.includes(ov.q));
   if (ov.filter === 'none') list = list.filter(x => x.worst === 'none');
   else if (ov.filter !== 'all') list = list.filter(x => x.byStat[ov.filter] > 0);
@@ -632,11 +670,14 @@ function renderStockCards() {
     ov.sort === 'name' ? (a, b) => a.p.name.localeCompare(b.p.name, 'zh-Hant') :
                          (a, b) => rank[a.worst] - rank[b.worst] || b.byStat.danger - a.byStat.danger || b.byStat.warn - a.byStat.warn);
 
-  document.getElementById('stockCards').innerHTML = list.length ? list.map(x => {
+  const actions = (p) => `<div class="pactions"><button class="btn secondary small" onclick="openProdModal(${p.id})">✎ 編輯 / 刪除品項</button></div>`;
+  const addCard = `<div class="pcard add" onclick="openProdModal(null)"><span>＋</span>新增品項</div>`;
+  document.getElementById('stockCards').innerHTML = (list.length ? list.map(x => {
     const p = x.p, open = ov.open === p.id;
-    if (!x.qty) return `<div class="pcard none">
+    if (!x.qty) return `<div class="pcard none ${open ? 'open' : ''}" onclick="toggleCard(${p.id})">
         <div class="phead"><span class="dot" style="background:${p.color}"></span><span class="pname">${p.name}</span><span class="pqty">0<small> 籠</small></span></div>
-        <div class="pmeta"><span class="tag none">缺貨</span></div></div>`;
+        <div class="pmeta"><span class="tag none">缺貨</span></div>
+        ${open ? `<div class="pdetail" onclick="event.stopPropagation()"><span class="hint">目前沒有庫存，保存天數 ${p.shelfDays} 天。</span>${actions(p)}</div>` : ''}</div>`;
     const bar = ['danger', 'warn', 'ok'].filter(k => x.byStat[k]).map(k => `<i class="${k}" style="width:${x.byStat[k] / x.qty * 100}%"></i>`).join('');
     const tags = [['danger', '超期'], ['warn', '快到期'], ['ok', '正常']].filter(([k]) => x.byStat[k]).map(([k, t]) => `<span class="tag ${k}">${t} ${x.byStat[k]}</span>`).join('');
     // 展開：列出各格庫存，照 FIFO 順序編號 —— 出庫時就是照這個順序拿
@@ -644,14 +685,68 @@ function renderStockCards() {
         <table><thead><tr><th>順序</th><th>批次</th><th>櫃位</th><th>籠數</th><th>入庫日</th><th>已放 / 上限</th><th>到期日</th><th>狀態</th></tr></thead><tbody>
         ${[...x.ss].sort((a, b) => byInDate(batchOf(a), batchOf(b))).map((s, i) => { const b = batchOf(s), st = statusOf(b);
           return `<tr><td>${i + 1}</td><td>${b.id}</td><td><b>${s.slotId}</b></td><td>${s.qty}</td><td>${b.inDate}</td><td>${ageDays(b)} / ${limitDays(b)} 天</td><td>${b.expireDate}</td><td><span class="tag ${st.key}">${st.text}</span></td></tr>`; }).join('')}
-        </tbody></table></div>`;
+        </tbody></table>${actions(p)}</div>`;
     return `<div class="pcard ${x.worst} ${open ? 'open' : ''}" onclick="toggleCard(${p.id})">
         <div class="phead"><span class="dot" style="background:${p.color}"></span><span class="pname">${p.name}</span><span class="pqty">${x.qty}<small> 籠</small></span></div>
         <div class="pbar">${bar}</div>
         <div class="pmeta">${tags}</div>
         <div class="pmeta hint">${x.batchList.length} 批 ・ 佔 ${x.ss.length} 格 ・ 最舊已放 ${ageDays(x.oldest)} / ${limitDays(x.oldest)} 天</div>
         ${detail}</div>`;
-  }).join('') : '<div class="empty">沒有符合的品項</div>';
+  }).join('') : '<div class="empty">沒有符合的品項</div>') + addCard;
+}
+
+/* ---------- 品項主檔：新增 / 編輯 / 刪除（李太太今年多一種菜、少一種菜） ---------- */
+let pmId = null, pmColor = '';
+function openProdModal(id) {
+  pmId = id;
+  const p = id ? product(id) : null, qty = p ? stockQty(p.id) : 0;
+  document.getElementById('pmTitle').textContent = p ? `編輯品項：${p.name}` : '新增品項';
+  document.getElementById('pmName').value = p ? p.name : '';
+  document.getElementById('pmDays').value = p ? p.shelfDays : 60;
+  const used = new Set(activeProducts().map(x => x.color));
+  pmColor = p ? p.color : (PALETTE.find(c => !used.has(c)) || PALETTE[0]);   // 新品項自動挑一個沒用過的顏色
+  renderSwatches();
+  document.getElementById('pmDelete').style.display = p ? '' : 'none';
+  document.getElementById('pmConfirm').style.display = 'none';
+  document.getElementById('pmConfirmName').value = '';
+  const db = document.getElementById('pmDelBtn');
+  db.style.display = ''; db.disabled = qty > 0;   // 還有貨不能刪，先出清
+  db.textContent = qty > 0 ? `🗑 還有 ${qty} 籠，出清後才能刪除` : '🗑 刪除這個品項…';
+  document.getElementById('pmBg').classList.add('show');
+  if (!p) document.getElementById('pmName').focus();
+}
+function renderSwatches() {
+  document.getElementById('pmSwatches').innerHTML = PALETTE.map(c => `<button class="swatch ${c === pmColor ? 'active' : ''}" style="background:${c}" onclick="pmColor='${c}';renderSwatches()"></button>`).join('');
+}
+function closeProdModal() { document.getElementById('pmBg').classList.remove('show'); pmId = null; }
+function saveProdModal() {
+  const name = document.getElementById('pmName').value.trim(), days = +document.getElementById('pmDays').value;
+  if (!name) return toast('請輸入名稱');
+  if (!(days >= 1)) return toast('保存天數至少 1 天');
+  if (activeProducts().some(p => p.name === name && p.id !== pmId)) return toast(`已經有「${name}」了`);
+  if (pmId) {
+    const p = product(pmId), changes = [];
+    if (p.name !== name) changes.push(`名稱 ${p.name} → ${name}`);
+    if (p.shelfDays !== days) changes.push(`保存天數 ${p.shelfDays} → ${days} 天`);
+    if (p.color !== pmColor) changes.push('顏色');
+    if (!changes.length) return closeProdModal();
+    commit(`編輯品項 ${name}`, () => { p.name = name; p.shelfDays = days; p.color = pmColor; log('主檔', name, '—', '—', '編輯品項：' + changes.join('、')); });
+    toast(`已更新「${name}」`);
+  } else {
+    const id = Math.max(...products.map(p => p.id)) + 1;
+    commit(`新增品項 ${name}`, () => { products.push({ id, name, shelfDays: days, color: pmColor }); log('主檔', name, '—', '—', `新增品項，保存 ${days} 天`); });
+    toast(`已新增「${name}」`);
+  }
+  closeProdModal(); renderAll();
+}
+function deleteProduct() {
+  const p = product(pmId);
+  if (document.getElementById('pmConfirmName').value.trim() !== p.name) return toast('名稱不符，沒有刪除');
+  if (stockQty(p.id) > 0) return toast('還有庫存，不能刪除');
+  commit(`刪除品項 ${p.name}`, () => { p.deleted = true; log('主檔', p.name, '—', '—', '刪除品項（歷史紀錄保留）'); });
+  inRows = []; outRows = []; ov.open = null;   // 表單裡可能選著這個品項，重置
+  toast(`已刪除「${p.name}」（Ctrl+Z 可復原）`);
+  closeProdModal(); renderAll();
 }
 
 /* ===================== 表單共用 ===================== */
@@ -663,7 +758,7 @@ function productPicker(prefix, i, r, dimEmpty) {
   const rerender = prefix === 'inRows' ? 'renderInbound()' : 'renderOutbound()';
   let html = `<label>品項</label><button class="pcur" onclick="prodOpen.${prefix}=${open ? 'null' : i};${rerender}">
       <span class="dot" style="background:${p.color}"></span>${p.name}<small>${open ? '收起 ▴' : '換品項 ▾'}</small></button>`;
-  if (open) html += `<div class="ptiles">` + products.map(q => { const n = stockQty(q.id);
+  if (open) html += `<div class="ptiles">` + activeProducts().map(q => { const n = stockQty(q.id);
       return `<button class="ptile ${q.id === r.pid ? 'active' : ''} ${dimEmpty && !n ? 'none' : ''}" onclick="${prefix}[${i}].pid=${q.id};prodOpen.${prefix}=null;${rerender}">
         <span class="dot" style="background:${q.color}"></span>${q.name}<small>${n ? n + ' 籠' : '缺貨'}</small></button>`; }).join('') + `</div>`;
   return html;
@@ -709,7 +804,7 @@ function expireOf(r) {
 function addInRow() {
   const taken = inRows.map(r => slotId(r.wh, r.row, r.level));
   const s = nextEmptySlot(taken);
-  inRows.push({ pid: products[0].id, qty: 5, wh: s.wh, row: s.row, level: s.level, expMode: 'auto', expire: '', expDays: 30 });
+  inRows.push({ pid: activeProducts()[0].id, qty: 5, wh: s.wh, row: s.row, level: s.level, expMode: 'auto', expire: '', expDays: 30 });
   prodOpen.inRows = inRows.length - 1;                     // 新加的那項先選品項
   if (inPickRow !== null) inPickRow = inRows.length - 1;   // 地圖跟著切到新加的那項
   renderInbound();
@@ -784,7 +879,7 @@ function resetInbound() {
 
 /* ===================== 出庫 ===================== */
 let outRows = [], currentPlan = null;
-function addOutRow() { outRows.push({ pid: products[0].id, qty: 6 }); prodOpen.outRows = outRows.length - 1; renderOutbound(); }
+function addOutRow() { outRows.push({ pid: activeProducts()[0].id, qty: 6 }); prodOpen.outRows = outRows.length - 1; renderOutbound(); }
 function removeOutRow(i) { outRows.splice(i, 1); prodOpen.outRows = null; renderOutbound(); }
 function renderOutbound() {
   if (!outRows.length) { addOutRow(); return; }
@@ -942,7 +1037,7 @@ function saveModal() {
 
 /* ===================== 畫面：紀錄 ===================== */
 function renderLog() {
-  const color = { '入庫': 'var(--ok)', '出庫': 'var(--primary)', '移位': 'var(--warn)', '盤點': 'var(--danger)', '改到期日': '#6c5ce7', '丟棄': '#4a4a4a', '復原': '#7f8c8d', '重做': '#7f8c8d' };
+  const color = { '入庫': 'var(--ok)', '出庫': 'var(--primary)', '移位': 'var(--warn)', '盤點': 'var(--danger)', '改到期日': '#6c5ce7', '丟棄': '#4a4a4a', '主檔': '#2c3e50', '復原': '#7f8c8d', '重做': '#7f8c8d' };
   const u = undoStack[undoStack.length - 1], r = redoStack[redoStack.length - 1];
   const ub = document.getElementById('undoBtn'), rb = document.getElementById('redoBtn');
   ub.disabled = !u; ub.textContent = u ? `↶ 復原：${u.label}` : '↶ 復原（沒有可復原的動作）';
