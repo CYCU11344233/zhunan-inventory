@@ -32,6 +32,7 @@
   .btn.danger { background: var(--danger); }
   .btn.small { font-size: 15px; padding: 8px 14px; margin-top: 0; }
   .btn.link { background: none; color: var(--danger); padding: 6px 0; font-size: 15px; margin-top: 6px; }
+  .btn:disabled { opacity: .4; cursor: default; }
   table { width: 100%; border-collapse: collapse; font-size: 16px; }
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { background: #f0f3f5; }
@@ -84,6 +85,17 @@
   .pdetail th, .pdetail td { padding: 6px; white-space: nowrap; }
   .empty { color: var(--muted); padding: 20px; text-align: center; }
 
+  /* ====== 入 / 出庫：品項用色塊圖庫選，不用下拉找 ====== */
+  .pcur { display: inline-flex; align-items: center; gap: 8px; width: 100%; font-size: 17px; padding: 9px 12px; border: 2px solid var(--primary); border-radius: 8px; background: #e8f3ed; color: var(--text); font-weight: bold; cursor: pointer; text-align: left; }
+  .pcur small { margin-left: auto; font-weight: normal; color: var(--primary); font-size: 14px; white-space: nowrap; }
+  .ptiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; margin: 8px 0 4px; }
+  .ptile { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; background: #fff; cursor: pointer; font-size: 15px; text-align: left; color: var(--text); }
+  .ptile:hover { background: #f0f7f3; border-color: var(--primary); }
+  .ptile.active { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: bold; }
+  .ptile.active small { color: #dfeee6; }
+  .ptile small { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .ptile.none { opacity: .45; }
+
   /* ====== 入 / 出庫切換 ====== */
   .seg { display: flex; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
   .seg button { flex: 1; font-size: 18px; padding: 12px; border: none; background: #fff; color: var(--primary); cursor: pointer; font-weight: bold; }
@@ -92,7 +104,8 @@
   /* ====== 倉庫地圖：每排是一座直立貨架（3 層），排與排之間留寬走道 ====== */
   .wh { margin-bottom: 18px; }
   .wh h3 { margin: 0 0 6px; }
-  .wh-map { display: flex; align-items: flex-end; overflow-x: auto; padding: 6px 0; }
+  .wh h3 { text-align: center; }
+  .wh-map { display: flex; align-items: flex-end; overflow-x: auto; padding: 6px 0; width: max-content; max-width: 100%; margin: 0 auto; }   /* 地圖置中；太寬就左右捲 */
   .entry { writing-mode: vertical-rl; font-size: 13px; color: var(--muted); padding: 8px 4px; border-right: 3px solid var(--primary); margin-right: 14px; align-self: stretch; display: flex; align-items: center; }
   .shelf { display: flex; flex-direction: column; gap: 4px; }
   .shelf + .shelf { margin-left: 26px; }   /* 走道：用空白，不畫線 */
@@ -118,11 +131,35 @@
   .whtabs button { font-size: 15px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--primary); background: #fff; color: var(--primary); cursor: pointer; }
   .whtabs button.active { background: var(--primary); color: #fff; }
 
+  /* 地圖說明：兩排都是「標記 + 說明」 */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 15px; color: var(--muted); margin: 0 0 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .legend kbd { font-family: inherit; font-size: 14px; font-weight: bold; color: var(--text); background: #f0f3f5; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; }
+  .legend .sw { width: 18px; height: 16px; border-radius: 4px; background: #e9ecef; border: 1px solid var(--line); display: inline-block; margin: 0 3px; }
+  .legend .sw.full { background: #2e86c1; border-color: transparent; }
+  .legend .sw.old { box-shadow: 0 0 0 2px var(--danger); }
+  .legend .sw.warn { box-shadow: 0 0 0 2px var(--warn); }
+
+  /* 地圖區：左邊丟棄區 + 置中的地圖 */
+  .maparea { display: flex; gap: 16px; align-items: stretch; margin-top: 10px; }
+  .maparea #maps { flex: 1 1 auto; min-width: 0; }
+  .bin { flex: 0 0 92px; border: 2px dashed var(--line); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); transition: .15s; }
+  .bin .ico { font-size: 28px; }
+  .bin b { font-size: 17px; }
+  .bin small { font-size: 12px; }
+  body.dragging .bin { border-color: var(--danger); color: var(--danger); background: #fdf1f0; }   /* 一拿起格子就微微亮起 */
+  .bin.over { background: #f6d3cf; border-style: solid; transform: scale(1.04); }
+
   /* 底部資訊面板（點格子後出現；點其他地方就關） */
   .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 3px solid var(--primary); padding: 12px 16px; box-shadow: 0 -4px 12px rgba(0,0,0,.12); display: none; z-index: 50; }
   .sheet.show { display: block; }
   .sheet .inner { max-width: 1000px; margin: 0 auto; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
   .sheet .info { font-size: 17px; }
+
+  /* 紀錄頁：復原 / 重做 */
+  .undobar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  tr.undone td { opacity: .45; }
+  tr.undone td s { text-decoration-color: var(--danger); }
 
   /* 編輯格子的對話框（右鍵） */
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 60; }
@@ -141,6 +178,8 @@
     #page-map .card { padding: 10px; }
     .entry { margin-right: 6px; padding: 4px 2px; }
     .shelf .lbl { font-size: 11px; }
+    .maparea { flex-direction: column; gap: 10px; }
+    .bin { flex-basis: auto; flex-direction: row; padding: 8px; gap: 10px; }
   }
   @media (max-width: 480px) { .pgrid { grid-template-columns: 1fr; } }
 
@@ -234,18 +273,37 @@
   <!-- ========== 倉庫地圖（含移位 / 盤點） ========== -->
   <section class="page" id="page-map">
     <div class="card">
-      <p class="hint">
-        <b>左鍵</b>看內容 ｜ <b>右鍵</b>編輯數量 / 到期日（盤點） ｜ <b>拖曳</b>到空格 = 移位、拖到有貨的格子 = 互換。<br>
-        灰 = 空格；紅框 = 已超期；橘框 = 快到期。
-      </p>
-      <div id="maps"></div>
+      <div class="legend">
+        <span><kbd>左鍵</kbd>看內容</span>
+        <span><kbd>右鍵</kbd>改籠數、到期日</span>
+        <span><kbd>拖到空格</kbd>移位</span>
+        <span><kbd>拖到有貨格</kbd>互換</span>
+        <span><kbd>拖到左側</kbd>丟棄</span>
+      </div>
+      <div class="legend">
+        <span><i class="sw"></i>空格</span>
+        <span><i class="sw full"></i>有貨（顏色 = 品項）</span>
+        <span><i class="sw full old"></i>已超期</span>
+        <span><i class="sw full warn"></i>快到期</span>
+      </div>
+      <div class="maparea">
+        <div class="bin" id="bin" ondragover="binOver(event)" ondragleave="binLeave()" ondrop="binDrop(event)">
+          <span class="ico">🗑</span><b>丟棄</b><small>拖到這裡</small>
+        </div>
+        <div id="maps"></div>
+      </div>
     </div>
   </section>
 
   <!-- ========== 紀錄 ========== -->
   <section class="page" id="page-log">
     <div class="card">
-      <h2>異動紀錄（永久保存、不可刪除）</h2>
+      <h2>異動紀錄 <span class="hint">（永久保存；復原不會刪紀錄，只會標記並補一筆）</span></h2>
+      <div class="undobar">
+        <button class="btn secondary small" id="undoBtn" onclick="undo()"></button>
+        <button class="btn secondary small" id="redoBtn" onclick="redo()"></button>
+        <span class="hint">在任何頁面按 Ctrl+Z / Ctrl+Y 也可以</span>
+      </div>
       <table><thead><tr><th>時間</th><th>類型</th><th>品項</th><th>籠數</th><th>櫃位</th><th>備註</th></tr></thead><tbody id="logTable"></tbody></table>
     </div>
   </section>
@@ -255,7 +313,7 @@
 <div class="sheet" id="sheet">
   <div class="inner">
     <div class="info" id="sheetInfo"></div>
-    <span class="hint">右鍵編輯 ・ 拖曳移位 ・ 點其他地方關閉</span>
+    <span class="hint">右鍵編輯 ・ 拖曳移位 / 丟棄 ・ 點其他地方關閉</span>
   </div>
 </div>
 
@@ -289,7 +347,9 @@
      slots     櫃位      { id, wh, row, level }     id 格式 "A-03-2" = A庫 第3排 第2層
      batches   批次      { id, productId, inDate, expireDate }   FIFO 的單位；到期日可自訂
      stocks    庫存堆    { batchId, slotId, qty }   一批貨放在某一格（一批可拆放多格）
-     movements 異動紀錄  { time, type, product, qty, slot, note }
+     movements 異動紀錄  { id, time, type, product, qty, slot, note, undone }
+   復原 / 重做：每個會改庫存的動作前後各存一份快照，復原 = 退回快照；
+   紀錄不刪，被復原的那幾筆只標記 undone，另補一筆「復原」。
    ===================================================================== */
 const WH = ['A', 'B'], ROWS = 6, LEVELS = 3;
 const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -328,7 +388,7 @@ const slots = [];
 for (const wh of WH) for (let r = 1; r <= ROWS; r++) for (let l = 1; l <= LEVELS; l++)
   slots.push({ id: slotId(wh, r, l), wh, row: r, level: l });
 
-let batchSeq = 1;
+let batchSeq = 1, mSeq = 0;
 const batches = [], stocks = [], movements = [];
 const newBatchId = (date) => `B${date.replace(/-/g, '')}-${pad(batchSeq++)}`;
 
@@ -369,6 +429,7 @@ while (pool.length > 6) {
 // 外地轉來的一批高麗菜：5 天前才搬進來，但原本的到期日已過 —— 示範「狀態看到期日，不看入庫日」
 seedBatch(2, 5, 6, addDays(fmt(today), -2));
 movements.sort((a, b) => a.time < b.time ? -1 : 1);
+movements.forEach(m => m.id = ++mSeq);
 
 /* ===================== 共用查詢 ===================== */
 const stockAt = (sid) => stocks.find(s => s.slotId === sid && s.qty > 0);
@@ -377,7 +438,55 @@ const productOfStock = (s) => product(batchOf(s).productId);
 const emptySlots = () => slots.filter(sl => !stockAt(sl.id));
 const slotObj = (sid) => slots.find(s => s.id === sid);
 const now = () => fmt(today) + ' ' + new Date().toTimeString().slice(0, 5);
-const log = (type, prod, qty, slot, note) => movements.push({ time: now(), type, product: prod, qty, slot, note });
+const log = (type, prod, qty, slot, note) => movements.push({ id: ++mSeq, time: now(), type, product: prod, qty, slot, note });
+const stockQty = (pid) => stocks.filter(s => s.qty > 0 && batchOf(s).productId === pid).reduce((a, s) => a + s.qty, 0);
+
+/* ===================== 復原 / 重做 =====================
+   commit(label, fn)：執行 fn 之前後各拍一張庫存快照，並記下這次新增了哪幾筆紀錄。
+   undo：退回 before 快照，把那幾筆紀錄標記為已復原，再補一筆「復原」。
+   redo：套回 after 快照，取消標記，補一筆「重做」。
+   —— 之後接後端時，復原就是送一筆反向交易，紀錄同樣不刪。 */
+const undoStack = [], redoStack = [];
+const snapshot = () => ({ batches: batches.map(b => ({ ...b })), stocks: stocks.map(s => ({ ...s })), batchSeq });
+function restore(snap) {
+  batches.splice(0, batches.length, ...snap.batches.map(b => ({ ...b })));
+  stocks.splice(0, stocks.length, ...snap.stocks.map(s => ({ ...s })));
+  batchSeq = snap.batchSeq;
+}
+function commit(label, fn) {
+  const before = snapshot(), start = movements.length;
+  fn();
+  undoStack.push({ label, before, after: snapshot(), ids: movements.slice(start).map(m => m.id) });
+  redoStack.length = 0;
+}
+function undo() {
+  const a = undoStack.pop();
+  if (!a) return toast('沒有可以復原的動作');
+  restore(a.before);
+  movements.forEach(m => { if (a.ids.includes(m.id)) m.undone = true; });
+  log('復原', '', '', '', `復原「${a.label}」，庫存退回該動作之前`);
+  redoStack.push(a);
+  toast(`已復原：${a.label}`);
+  hideSheet(); renderAll();
+}
+function redo() {
+  const a = redoStack.pop();
+  if (!a) return toast('沒有可以重做的動作');
+  restore(a.after);
+  movements.forEach(m => { if (a.ids.includes(m.id)) m.undone = false; });
+  log('重做', '', '', '', `重做「${a.label}」`);
+  undoStack.push(a);
+  toast(`已重做：${a.label}`);
+  hideSheet(); renderAll();
+}
+// Ctrl+Z / Ctrl+Y（在輸入框裡打字時交給瀏覽器，不攔截）
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  if (['input', 'textarea', 'select'].includes((e.target.tagName || '').toLowerCase())) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
+});
 const byInDate = (a, b) => a.inDate < b.inDate ? -1 : a.inDate > b.inDate ? 1 : a.id < b.id ? -1 : 1;   // FIFO 排序：入庫日 → 批次編號
 
 // 批次狀態：依到期日算，不是依入庫日 —— 這樣自訂到期日的外地菜也能正確判斷
@@ -547,7 +656,18 @@ function renderStockCards() {
 
 /* ===================== 表單共用 ===================== */
 const opts = (arr, sel, fmtFn = (x) => x) => arr.map(v => `<option value="${v}" ${v == sel ? 'selected' : ''}>${fmtFn(v)}</option>`).join('');
-const productOpts = (sel) => products.map(p => `<option value="${p.id}" ${p.id == sel ? 'selected' : ''}>${p.name}</option>`).join('');
+// 品項選擇：色塊圖庫。prodOpen 記哪一項的圖庫是展開的（一次只開一個，選完自動收起）
+const prodOpen = { inRows: 0, outRows: 0 };
+function productPicker(prefix, i, r, dimEmpty) {
+  const p = product(r.pid), open = prodOpen[prefix] === i;
+  const rerender = prefix === 'inRows' ? 'renderInbound()' : 'renderOutbound()';
+  let html = `<label>品項</label><button class="pcur" onclick="prodOpen.${prefix}=${open ? 'null' : i};${rerender}">
+      <span class="dot" style="background:${p.color}"></span>${p.name}<small>${open ? '收起 ▴' : '換品項 ▾'}</small></button>`;
+  if (open) html += `<div class="ptiles">` + products.map(q => { const n = stockQty(q.id);
+      return `<button class="ptile ${q.id === r.pid ? 'active' : ''} ${dimEmpty && !n ? 'none' : ''}" onclick="${prefix}[${i}].pid=${q.id};prodOpen.${prefix}=null;${rerender}">
+        <span class="dot" style="background:${q.color}"></span>${q.name}<small>${n ? n + ' 籠' : '缺貨'}</small></button>`; }).join('') + `</div>`;
+  return html;
+}
 function slotSelects(prefix, i, r) {
   return `<div class="row">
     <div><label>庫</label><select onchange="${prefix}[${i}].wh=this.value;renderInbound()">${opts(WH, r.wh)}</select></div>
@@ -590,17 +710,18 @@ function addInRow() {
   const taken = inRows.map(r => slotId(r.wh, r.row, r.level));
   const s = nextEmptySlot(taken);
   inRows.push({ pid: products[0].id, qty: 5, wh: s.wh, row: s.row, level: s.level, expMode: 'auto', expire: '', expDays: 30 });
+  prodOpen.inRows = inRows.length - 1;                     // 新加的那項先選品項
   if (inPickRow !== null) inPickRow = inRows.length - 1;   // 地圖跟著切到新加的那項
   renderInbound();
 }
-function removeInRow(i) { inRows.splice(i, 1); if (inPickRow >= inRows.length) inPickRow = inRows.length - 1; renderInbound(); }
+function removeInRow(i) { inRows.splice(i, 1); prodOpen.inRows = null; if (inPickRow >= inRows.length) inPickRow = inRows.length - 1; renderInbound(); }
 function renderInbound() {
   if (!inRows.length) { addInRow(); return; }
   document.getElementById('inRows').innerHTML = inRows.map((r, i) => `
     <div class="item">
       <div class="title">第 ${i + 1} 項</div>
       <div class="row">
-        <div><label>品項</label><select onchange="inRows[${i}].pid=+this.value;renderInbound()">${productOpts(r.pid)}</select></div>
+        <div style="flex:3 1 240px">${productPicker('inRows', i, r, false)}</div>
         <div><label>籠數</label><input type="number" min="1" value="${r.qty}" oninput="inRows[${i}].qty=+this.value"></div>
       </div>
       ${slotSelects('inRows', i, r)}
@@ -634,14 +755,16 @@ function doInbound() {
     seen.add(sid);
   }
   const date = fmt(today), steps = [];
-  for (const r of inRows) {
-    const sid = slotId(r.wh, r.row, r.level), p = product(r.pid), expire = expireOf(r);
-    const b = { id: newBatchId(date), productId: r.pid, inDate: date, expireDate: expire };
-    batches.push(b);
-    stocks.push({ batchId: b.id, slotId: sid, qty: r.qty });
-    log('入庫', p.name, r.qty, sid, '批次 ' + b.id + (r.expMode !== 'auto' ? '（自訂到期 ' + expire + '）' : ''));
-    steps.push({ slotId: sid, pid: r.pid, qty: r.qty, expire });
-  }
+  commit('入庫 ' + inRows.map(r => `${product(r.pid).name} ${r.qty} 籠`).join('、'), () => {
+    for (const r of inRows) {
+      const sid = slotId(r.wh, r.row, r.level), p = product(r.pid), expire = expireOf(r);
+      const b = { id: newBatchId(date), productId: r.pid, inDate: date, expireDate: expire };
+      batches.push(b);
+      stocks.push({ batchId: b.id, slotId: sid, qty: r.qty });
+      log('入庫', p.name, r.qty, sid, '批次 ' + b.id + (r.expMode !== 'auto' ? '（自訂到期 ' + expire + '）' : ''));
+      steps.push({ slotId: sid, pid: r.pid, qty: r.qty, expire });
+    }
+  });
   steps.sort(walkOrder);
   const hl = {}; steps.forEach((s, i) => hl[s.slotId] = i + 1);
   document.getElementById('inSteps').innerHTML = steps.map((s, i) =>
@@ -661,8 +784,8 @@ function resetInbound() {
 
 /* ===================== 出庫 ===================== */
 let outRows = [], currentPlan = null;
-function addOutRow() { outRows.push({ pid: products[0].id, qty: 6 }); renderOutbound(); }
-function removeOutRow(i) { outRows.splice(i, 1); renderOutbound(); }
+function addOutRow() { outRows.push({ pid: products[0].id, qty: 6 }); prodOpen.outRows = outRows.length - 1; renderOutbound(); }
+function removeOutRow(i) { outRows.splice(i, 1); prodOpen.outRows = null; renderOutbound(); }
 function renderOutbound() {
   if (!outRows.length) { addOutRow(); return; }
   clearPick();
@@ -670,7 +793,7 @@ function renderOutbound() {
     <div class="item">
       <div class="title">第 ${i + 1} 項</div>
       <div class="row">
-        <div><label>品項</label><select onchange="outRows[${i}].pid=+this.value;clearPick()">${productOpts(r.pid)}</select></div>
+        <div style="flex:3 1 240px">${productPicker('outRows', i, r, true)}</div>
         <div><label>籠數</label><input type="number" min="1" value="${r.qty}" oninput="outRows[${i}].qty=+this.value;clearPick()"></div>
       </div>
       ${outRows.length > 1 ? `<button class="btn link" onclick="removeOutRow(${i})">✕ 移除這項</button>` : ''}
@@ -697,11 +820,14 @@ function makePick() {
 }
 function confirmPick() {
   if (!currentPlan) return;
-  for (const p of currentPlan) {
-    const s = stocks.find(x => x.slotId === p.slotId && x.batchId === p.batchId);
-    s.qty -= p.qty;
-    log('出庫', product(p.pid).name, p.qty, p.slotId, '批次 ' + p.batchId + '（FIFO）');
-  }
+  const byProd = {}; currentPlan.forEach(p => byProd[p.pid] = (byProd[p.pid] || 0) + p.qty);
+  commit('出庫 ' + Object.entries(byProd).map(([pid, q]) => `${product(+pid).name} ${q} 籠`).join('、'), () => {
+    for (const p of currentPlan) {
+      const s = stocks.find(x => x.slotId === p.slotId && x.batchId === p.batchId);
+      s.qty -= p.qty;
+      log('出庫', product(p.pid).name, p.qty, p.slotId, '批次 ' + p.batchId + '（FIFO）');
+    }
+  });
   toast('出庫完成，庫存已更新');
   outRows = [];
   renderAll();
@@ -740,22 +866,41 @@ function transfer(from, to) {
   if (from === to) return;
   const st = stockAt(from), other = stockAt(to);
   if (!st) return toast('來源櫃位沒有貨');
-  st.slotId = to;
-  log('移位', productOfStock(st).name, st.qty, `${from} → ${to}`, '批次 ' + st.batchId + (other ? '（與 ' + to + ' 互換）' : ''));
-  if (other) {
-    other.slotId = from;
-    log('移位', productOfStock(other).name, other.qty, `${to} → ${from}`, '批次 ' + other.batchId + '（與 ' + from + ' 互換）');
-  }
+  commit(other ? `互換 ${from} ⇄ ${to}` : `移位 ${from} → ${to}`, () => {
+    st.slotId = to;
+    log('移位', productOfStock(st).name, st.qty, `${from} → ${to}`, '批次 ' + st.batchId + (other ? '（與 ' + to + ' 互換）' : ''));
+    if (other) {
+      other.slotId = from;
+      log('移位', productOfStock(other).name, other.qty, `${to} → ${from}`, '批次 ' + other.batchId + '（與 ' + from + ' 互換）');
+    }
+  });
   toast(other ? `已互換：${from} ⇄ ${to}` : `已移位：${from} → ${to}`);
   hideSheet();
   renderAll();
 }
 let dragFrom = null;
-function dragStart(e, sid) { dragFrom = sid; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
-function dragEnd(e) { e.currentTarget.classList.remove('dragging'); }
+function dragStart(e, sid) { dragFrom = sid; e.currentTarget.classList.add('dragging'); document.body.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+function dragEnd(e) { e.currentTarget.classList.remove('dragging'); document.body.classList.remove('dragging'); binLeave(); }
 function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
 function dragLeave(e) { e.currentTarget.classList.remove('over'); }
 function drop(e, sid) { e.preventDefault(); e.currentTarget.classList.remove('over'); if (dragFrom) transfer(dragFrom, sid); dragFrom = null; }
+
+// 丟棄：把格子拖到左側「丟棄」區 → 該格清空、記一筆丟棄（丟錯了 Ctrl+Z 可復原）
+function binOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; document.getElementById('bin').classList.add('over'); }
+function binLeave() { document.getElementById('bin').classList.remove('over'); }
+function binDrop(e) { e.preventDefault(); binLeave(); if (dragFrom) discard(dragFrom); dragFrom = null; }
+function discard(sid) {
+  const st = stockAt(sid);
+  if (!st) return;
+  const p = productOfStock(st), b = batchOf(st), stat = statusOf(b), qty = st.qty;
+  commit(`丟棄 ${sid} ${p.name} ${qty} 籠`, () => {
+    log('丟棄', p.name, qty, sid, `批次 ${b.id}，${stat.text}（到期 ${b.expireDate}）`);
+    st.qty = 0;
+  });
+  toast(`已丟棄 ${sid} ${p.name} ${qty} 籠（Ctrl+Z 可復原）`);
+  hideSheet();
+  renderAll();
+}
 
 // 右鍵：編輯數量 / 到期日（= 盤點）
 let modalSlot = null;
@@ -776,14 +921,20 @@ function saveModal() {
   const st = stockAt(modalSlot); if (!st) return closeModal();
   const b = batchOf(st), p = productOfStock(st);
   const qty = +document.getElementById('mQty').value, expire = document.getElementById('mExpire').value;
-  if (qty !== st.qty) {
-    log('盤點', p.name, qty - st.qty, modalSlot, `系統 ${st.qty} → 實際 ${qty}`);
-    st.qty = qty;
-  }
-  if (expire && expire !== b.expireDate) {
-    log('改到期日', p.name, st.qty, modalSlot, `${b.expireDate} → ${expire}`);
-    b.expireDate = expire;
-  }
+  const what = [];
+  if (qty !== st.qty) what.push('盤點');
+  if (expire && expire !== b.expireDate) what.push('改到期日');
+  if (!what.length) return closeModal();
+  commit(`${what.join('＋')} ${modalSlot}`, () => {
+    if (qty !== st.qty) {
+      log('盤點', p.name, qty - st.qty, modalSlot, `系統 ${st.qty} → 實際 ${qty}`);
+      st.qty = qty;
+    }
+    if (expire && expire !== b.expireDate) {
+      log('改到期日', p.name, st.qty, modalSlot, `${b.expireDate} → ${expire}`);
+      b.expireDate = expire;
+    }
+  });
   toast('已更新');
   closeModal(); hideSheet();
   renderAll();
@@ -791,9 +942,16 @@ function saveModal() {
 
 /* ===================== 畫面：紀錄 ===================== */
 function renderLog() {
-  const color = { '入庫': 'var(--ok)', '出庫': 'var(--primary)', '移位': 'var(--warn)', '盤點': 'var(--danger)', '改到期日': '#6c5ce7' };
-  document.getElementById('logTable').innerHTML = [...movements].reverse()
-    .map(m => `<tr><td>${m.time}</td><td><span class="tag" style="background:${color[m.type]}">${m.type}</span></td><td>${m.product}</td><td>${m.qty}</td><td>${m.slot}</td><td class="hint">${m.note}</td></tr>`).join('');
+  const color = { '入庫': 'var(--ok)', '出庫': 'var(--primary)', '移位': 'var(--warn)', '盤點': 'var(--danger)', '改到期日': '#6c5ce7', '丟棄': '#4a4a4a', '復原': '#7f8c8d', '重做': '#7f8c8d' };
+  const u = undoStack[undoStack.length - 1], r = redoStack[redoStack.length - 1];
+  const ub = document.getElementById('undoBtn'), rb = document.getElementById('redoBtn');
+  ub.disabled = !u; ub.textContent = u ? `↶ 復原：${u.label}` : '↶ 復原（沒有可復原的動作）';
+  rb.disabled = !r; rb.textContent = r ? `↷ 重做：${r.label}` : '↷ 重做';
+  document.getElementById('logTable').innerHTML = [...movements].reverse().map(m => {
+    const tag = `<span class="tag" style="background:${color[m.type]}">${m.type}</span>`;
+    if (m.type === '復原' || m.type === '重做') return `<tr><td>${m.time}</td><td>${tag}</td><td colspan="4" class="hint">${m.note}</td></tr>`;
+    return `<tr class="${m.undone ? 'undone' : ''}"><td>${m.time}</td><td>${tag}</td><td>${m.product}</td><td>${m.qty}</td><td>${m.slot}</td><td class="hint">${m.undone ? `<s>${m.note}</s> <span class="tag none">已復原</span>` : m.note}</td></tr>`;
+  }).join('');
 }
 
 /* ===================== 共用 ===================== */
