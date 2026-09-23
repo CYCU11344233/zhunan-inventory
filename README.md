@@ -21,7 +21,7 @@
 先裝好 Node.js 20+ 和 MySQL 8，然後在這個資料夾裡：
 
 ```bash
-cp .env.example .env      # 打開 .env，把 DB_PASSWORD 改成你的 MySQL 密碼
+cp .env.example .env      # 小組統一 MySQL root 密碼 1234，不用改；密碼不同才改 .env 的 DB_PASSWORD
 npm install
 npm run db:init           # 建資料庫 zhunan：7 張表、A/B 兩座庫、36 格、20 種菜
 npm run seed              # （選用）灌 Demo 那套假庫存，和 docs/demo 畫面上一模一樣
