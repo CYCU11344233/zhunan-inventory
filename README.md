@@ -39,8 +39,8 @@ npm start                 # 開 http://localhost:3000；手機連同一個 Wi-Fi
 2. 再讀 `docs/02-技術方案.md`，確認沒問題就把頂端改成 `狀態：已確認`。
 3. 用 Claude Code 開這個資料夾，第一句話：
 
-   > 讀 AGENTS.md 和 docs/02-技術方案.md，我們現在在「產品實現」階段，請做 §9 的 M1，程式碼要有中文註解，做完跑給我看。
+   > 讀 AGENTS.md 和 docs/02-技術方案.md，我們現在在「產品實現」階段，M1～M5 已完成，請做 §9 的 M6 收尾，程式碼要有中文註解，做完跑給我看。
 
 4. 每做完一個里程碑 commit 一次，訊息格式 `[產品實現] 做了什麼`。
 
-技術棧已定案：Node.js + Express + mysql2 + MySQL 8，前端純 HTML/CSS/JS，不換。正式版的啟動步驟會寫在技術方案 §8，做到 M6 時搬到這裡。
+技術棧已定案：Node.js + Express + mysql2 + MySQL 8，前端純 HTML/CSS/JS，不換。啟動步驟見上方「資料庫建置與啟動」。
