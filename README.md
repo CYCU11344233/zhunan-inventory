@@ -9,12 +9,29 @@
 | 1. 環境搭建 | ✅ | `AGENTS.md`、本 repo |
 | 2. 產品設計 | ✅ 已確認 | [`docs/01-產品方案.md`](docs/01-產品方案.md)、[`docs/demo/index.html`](docs/demo/index.html) |
 | 3. 技術設計 | 📝 草稿，待確認 | [`docs/02-技術方案.md`](docs/02-技術方案.md) |
-| 4. 產品實現 | ⬜ | `src/`、`public/`、`db/`、`test/`（照技術方案 §9 的順序做） |
+| 4. 產品實現 | 🟡 M1～M5 完成：所有操作都寫進資料庫，前端沿用 Demo 的畫面與操作（技術方案 §6）；剩 M6 收尾 | `db/`、`src/`、`public/`、`test/`（照技術方案 §9 的順序做） |
 | 5. 人工驗證 | ⬜ | `docs/03-驗證紀錄.md` |
 
 ## 先看 Demo
 
 用瀏覽器直接開 `docs/demo/index.html`，不用安裝任何東西。裡面的畫面、FIFO 揀貨、地圖拖曳、復原／重做，都是之後正式版要做成一樣的。
+
+## 資料庫建置與啟動
+
+先裝好 Node.js 20+ 和 MySQL 8，然後在這個資料夾裡：
+
+```bash
+cp .env.example .env      # 打開 .env，把 DB_PASSWORD 改成你的 MySQL 密碼
+npm install
+npm run db:init           # 建資料庫 zhunan：7 張表、A/B 兩座庫、36 格、20 種菜
+npm run seed              # （選用）灌 Demo 那套假庫存，和 docs/demo 畫面上一模一樣
+npm test                  # 自動測試，會另外建 zhunan_test / zhunan_test_api，不會動到 zhunan
+npm start                 # 開 http://localhost:3000；手機連同一個 Wi-Fi，用終端機印出的網址
+```
+
+
+- 重跑 `npm run db:init` 是安全的，不會清掉資料。想整個清空重來：`npm run db:reset`，再 `npm run seed`。
+- 資料表設計見 [`docs/02-技術方案.md`](docs/02-技術方案.md) §3；建置時補的細節在 §3.4。
 
 ## 接手開發（給組員）
 

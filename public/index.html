@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>竹南冷凍倉儲 — 庫存管理</title>
+<style>
+  /* ====== 基本樣式：大按鈕、大字，給戴手套站在冷凍庫門口的人用 ====== */
+  :root {
+    --bg: #f4f6f8; --card: #fff; --line: #d9dee3; --text: #1f2933; --muted: #62707c;
+    --primary: #1f6f4a; --primary-dark: #165436; --danger: #c0392b; --warn: #d68910; --ok: #1f6f4a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 17px; }
+  header { background: var(--primary); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  header h1 { font-size: 20px; margin: 0; }
+  header select { font-size: 16px; padding: 6px 10px; border-radius: 6px; border: none; }
+  nav { display: flex; overflow-x: auto; background: #fff; border-bottom: 1px solid var(--line); }
+  nav button { flex: 1 0 auto; min-width: 90px; padding: 14px 10px; font-size: 16px; border: none; background: none; color: var(--muted); border-bottom: 3px solid transparent; cursor: pointer; }
+  nav button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; }
+  main { padding: 16px 16px 120px; max-width: 1000px; margin: 0 auto; }
+  section.page { display: none; }
+  section.page.active { display: block; }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+  h3 { font-size: 17px; margin: 14px 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  label { display: block; font-weight: bold; margin: 10px 0 6px; font-size: 15px; }
+  select, input[type=number], input[type=text], input[type=date] { width: 100%; font-size: 17px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .btn { display: inline-block; font-size: 18px; padding: 14px 22px; border-radius: 8px; border: none; background: var(--primary); color: #fff; cursor: pointer; margin-top: 14px; }
+  .btn:hover { background: var(--primary-dark); }
+  .btn.secondary { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
+  .btn.danger { background: var(--danger); }
+  .btn.small { font-size: 15px; padding: 8px 14px; margin-top: 0; }
+  .btn.link { background: none; color: var(--danger); padding: 6px 0; font-size: 15px; margin-top: 6px; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #f0f3f5; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 14px; color: #fff; margin: 2px 2px 2px 0; white-space: nowrap; }
+  .tag.warn { background: var(--warn); } .tag.danger { background: var(--danger); } .tag.ok { background: var(--ok); } .tag.none { background: #999; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 32px; font-weight: bold; color: var(--primary); }
+  .stat .num small { font-size: 16px; color: var(--muted); font-weight: normal; }
+  .stat .lbl { color: var(--muted); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .bar { height: 26px; border-radius: 999px; background: #e3e7eb; overflow: hidden; display: flex; margin: 8px 0; }
+  .bar .used { background: var(--primary); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .bar-legend { display: flex; justify-content: space-between; font-size: 15px; color: var(--muted); }
+  .pick { font-size: 19px; line-height: 1.6; padding: 12px; background: #fdf6e3; border-radius: 8px; margin: 8px 0; }
+  .pick b { font-size: 23px; color: var(--primary); }
+  .hint { color: var(--muted); font-size: 15px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 140px; }
+  .item { border: 1px dashed var(--line); border-radius: 8px; padding: 4px 12px 10px; margin-bottom: 10px; background: #fafbfc; }
+  .item .title { font-weight: bold; color: var(--primary); margin-top: 8px; }
+
+  /* ====== 總覽：品項卡片（20 種菜也能一眼掃完） ====== */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar h2 { margin: 0; flex: 1 0 100%; }
+  .toolbar input[type=text] { flex: 1 1 150px; width: auto; font-size: 15px; padding: 8px 10px; }
+  .toolbar select { width: auto; font-size: 15px; padding: 8px 10px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer; color: var(--muted); }
+  .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .pcard { border: 1px solid var(--line); border-left: 6px solid #999; border-radius: 8px; padding: 10px 12px; background: #fff; cursor: pointer; }
+  .pcard:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .pcard.danger { border-left-color: var(--danger); }
+  .pcard.warn { border-left-color: var(--warn); }
+  .pcard.ok { border-left-color: var(--ok); }
+  .pcard.none { opacity: .55; }
+  .pcard.none.open { opacity: 1; }
+  .pcard.open { grid-column: 1 / -1; }          /* 展開時佔滿一整列 */
+  .pcard.add { border: 2px dashed var(--primary); color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; min-height: 96px; background: #f6faf8; }
+  .pcard.add span { font-size: 26px; line-height: 1; }
+  .pactions { margin-top: 10px; display: flex; gap: 8px; }
+  .phead { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+  .pname { font-weight: bold; flex: 1; font-size: 17px; }
+  .pqty { font-size: 24px; font-weight: bold; color: var(--primary); }
+  .pqty small { font-size: 13px; color: var(--muted); font-weight: normal; }
+  .pbar { height: 8px; border-radius: 4px; background: #e3e7eb; display: flex; overflow: hidden; margin: 8px 0 6px; }
+  .pbar i { display: block; height: 100%; }
+  .pbar .danger { background: var(--danger); } .pbar .warn { background: var(--warn); } .pbar .ok { background: var(--ok); }
+  .pmeta { font-size: 14px; margin-top: 4px; }
+  .pmeta .tag { font-size: 12px; padding: 2px 8px; }
+  .pdetail { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; cursor: default; overflow-x: auto; }
+  .pdetail table { font-size: 14px; }
+  .pdetail th, .pdetail td { padding: 6px; white-space: nowrap; }
+  .empty { color: var(--muted); padding: 20px; text-align: center; }
+
+  /* ====== 入 / 出庫：品項用色塊圖庫選，不用下拉找 ====== */
+  .pcur { display: inline-flex; align-items: center; gap: 8px; width: 100%; font-size: 17px; padding: 9px 12px; border: 2px solid var(--primary); border-radius: 8px; background: #e8f3ed; color: var(--text); font-weight: bold; cursor: pointer; text-align: left; }
+  .pcur small { margin-left: auto; font-weight: normal; color: var(--primary); font-size: 14px; white-space: nowrap; }
+  .ptiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; margin: 8px 0 4px; }
+  .ptile { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; background: #fff; cursor: pointer; font-size: 15px; text-align: left; color: var(--text); }
+  .ptile:hover { background: #f0f7f3; border-color: var(--primary); }
+  .ptile.active { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: bold; }
+  .ptile.active small { color: #dfeee6; }
+  .ptile small { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .ptile.none { opacity: .45; }
+
+  /* ====== 入 / 出庫切換 ====== */
+  .seg { display: flex; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+  .seg button { flex: 1; font-size: 18px; padding: 12px; border: none; background: #fff; color: var(--primary); cursor: pointer; font-weight: bold; }
+  .seg button.active { background: var(--primary); color: #fff; }
+
+  /* ====== 倉庫地圖：每排是一座直立貨架（3 層），排與排之間留寬走道 ====== */
+  .wh { margin-bottom: 18px; }
+  .wh h3 { margin: 0 0 6px; }
+  .wh h3 { text-align: center; }
+  .wh-map { display: flex; align-items: flex-end; overflow-x: auto; padding: 6px 0; width: max-content; max-width: 100%; margin: 0 auto; }   /* 地圖置中；太寬就左右捲 */
+  .entry { writing-mode: vertical-rl; font-size: 13px; color: var(--muted); padding: 8px 4px; border-right: 3px solid var(--primary); margin-right: 14px; align-self: stretch; display: flex; align-items: center; }
+  .shelf { display: flex; flex-direction: column; gap: 4px; }
+  .shelf + .shelf { margin-left: 26px; }   /* 走道：用空白，不畫線 */
+  .shelf .lbl { text-align: center; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .cell { width: 66px; height: 58px; border-radius: 6px; border: 1px solid var(--line); background: #e9ecef; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; cursor: pointer; color: #333; position: relative; user-select: none; }
+  .cell b { font-size: 12px; }
+  .cell.full { color: #fff; }
+  .cell.old { outline: 3px solid var(--danger); }
+  .cell.warn { outline: 3px solid var(--warn); }
+  .cell.sel { box-shadow: 0 0 0 3px #1f2933; }
+  .cell.over { box-shadow: 0 0 0 3px var(--primary) inset; background: #cfe8da; }
+  .cell.dragging { opacity: .4; }
+  .cell .step { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; border-radius: 50%; background: var(--danger); color: #fff; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .route .cell { cursor: default; }
+  .route .cell:not(.hl) { opacity: .3; }
+  .route .cell.hl { outline: 3px solid var(--danger); }
+  .picker .cell.taken { opacity: .35; cursor: not-allowed; }
+  .picker .cell.pickable:hover { background: #cfe8da; }
+  .picker .cell.hl { outline: 3px solid var(--primary); background: #cfe8da; }
+  .picker .cell.hl .step { background: var(--primary); }
+  .picker .wh h3 { display: none; }
+  .whtabs { display: flex; gap: 6px; margin: 10px 0 4px; flex-wrap: wrap; }
+  .whtabs button { font-size: 15px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--primary); background: #fff; color: var(--primary); cursor: pointer; }
+  .whtabs button.active { background: var(--primary); color: #fff; }
+
+  /* 地圖說明：兩排都是「標記 + 說明」 */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 15px; color: var(--muted); margin: 0 0 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .legend kbd { font-family: inherit; font-size: 14px; font-weight: bold; color: var(--text); background: #f0f3f5; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; }
+  .legend .sw { width: 18px; height: 16px; border-radius: 4px; background: #e9ecef; border: 1px solid var(--line); display: inline-block; margin: 0 3px; }
+  .legend .sw.full { background: #2e86c1; border-color: transparent; }
+  .legend .sw.old { box-shadow: 0 0 0 2px var(--danger); }
+  .legend .sw.warn { box-shadow: 0 0 0 2px var(--warn); }
+
+  /* 地圖區：左邊丟棄區 + 置中的地圖 */
+  .maparea { display: flex; gap: 16px; align-items: stretch; margin-top: 10px; }
+  .maparea #maps { flex: 1 1 auto; min-width: 0; }
+  .bin { flex: 0 0 92px; border: 2px dashed var(--line); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); transition: .15s; }
+  .bin .ico { font-size: 28px; }
+  .bin b { font-size: 17px; }
+  .bin small { font-size: 12px; }
+  body.dragging .bin { border-color: var(--danger); color: var(--danger); background: #fdf1f0; }   /* 一拿起格子就微微亮起 */
+  .bin.over { background: #f6d3cf; border-style: solid; transform: scale(1.04); }
+
+  /* 底部資訊面板（點格子後出現；點其他地方就關） */
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 3px solid var(--primary); padding: 12px 16px; box-shadow: 0 -4px 12px rgba(0,0,0,.12); display: none; z-index: 50; }
+  .sheet.show { display: block; }
+  .sheet .inner { max-width: 1000px; margin: 0 auto; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .sheet .info { font-size: 17px; }
+
+  /* 紀錄頁：復原 / 重做 */
+  .undobar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  tr.undone td { opacity: .45; }
+  tr.undone td s { text-decoration-color: var(--danger); }
+
+  /* 編輯格子的對話框（右鍵） */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 60; }
+  .modal-bg.show { display: flex; }
+  .modal { background: #fff; border-radius: 10px; padding: 20px; width: min(440px, 92vw); }
+  .qty-ctl { display: flex; gap: 8px; align-items: center; }
+  .qty-ctl button { font-size: 22px; width: 52px; height: 48px; border-radius: 8px; border: 2px solid var(--primary); background: #fff; color: var(--primary); cursor: pointer; }
+  .qty-ctl input { text-align: center; font-size: 22px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatch { width: 34px; height: 34px; border-radius: 7px; border: 3px solid transparent; cursor: pointer; padding: 0; }
+  .swatch.active { border-color: var(--text); }
+  .delzone { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 6px; }
+  .delzone p { font-size: 15px; margin: 8px 0; }
+
+  /* 手機寬度：格子縮小讓 6 排一次看得完，不用左右捲 */
+  @media (max-width: 600px) {
+    .cell { width: 42px; height: 44px; font-size: 10px; }
+    .cell b { font-size: 10px; }
+    .shelf { gap: 3px; }
+    .shelf + .shelf { margin-left: 6px; }
+    #page-map .card { padding: 10px; }
+    .entry { margin-right: 6px; padding: 4px 2px; }
+    .shelf .lbl { font-size: 11px; }
+    .maparea { flex-direction: column; gap: 10px; }
+    .bin { flex-basis: auto; flex-direction: row; padding: 8px; gap: 10px; }
+  }
+  @media (max-width: 480px) { .pgrid { grid-template-columns: 1fr; } }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; opacity: 0; transition: .3s; pointer-events: none; z-index: 70; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>竹南冷凍倉儲 庫存系統</h1>
+</header>
+
+<nav id="nav">
+  <button data-page="overview">總覽</button>
+  <button data-page="io">入／出庫</button>
+  <button data-page="map">倉庫地圖</button>
+  <button data-page="log">紀錄</button>
+</nav>
+
+<main>
+  <!-- ========== 總覽 ========== -->
+  <section class="page" id="page-overview">
+    <div class="grid" id="stats"></div>
+    <div class="card">
+      <h2>櫃位使用率</h2>
+      <div class="bar"><div class="used" id="barUsed"></div></div>
+      <div class="bar-legend" id="barLegend"></div>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <h2>各品項庫存 <span class="hint">（點卡片展開各批次）</span></h2>
+        <input type="text" placeholder="搜尋品項…" oninput="ov.q=this.value.trim();renderStockCards()">
+        <select onchange="ov.sort=this.value;renderStockCards()">
+          <option value="issue">有問題的排前面</option>
+          <option value="qty">籠數多 → 少</option>
+          <option value="name">品項名稱</option>
+        </select>
+        <div class="chips" id="chips">
+          <button class="chip active" data-f="all" onclick="setFilter('all')">全部</button>
+          <button class="chip" data-f="danger" onclick="setFilter('danger')">有超期</button>
+          <button class="chip" data-f="warn" onclick="setFilter('warn')">有快到期</button>
+          <button class="chip" data-f="none" onclick="setFilter('none')">缺貨</button>
+        </div>
+      </div>
+      <div class="pgrid" id="stockCards"></div>
+    </div>
+  </section>
+
+  <!-- ========== 入 / 出庫（同一頁，用切換鈕選） ========== -->
+  <section class="page" id="page-io">
+    <div class="card" id="ioForm">
+      <div class="seg">
+        <button id="segIn" class="active" onclick="setMode('in')">入庫</button>
+        <button id="segOut" onclick="setMode('out')">出庫</button>
+      </div>
+
+      <div id="ioIn">
+        <h2>貨到了，要放哪一格？</h2>
+        <p class="hint">櫃位已預填空格，可用下拉改或直接在地圖上點。到期日預設 = 今天 + 保存天數。</p>
+        <div id="inRows"></div>
+        <button class="btn secondary small" onclick="addInRow()">＋ 再加一項</button>
+        <br><button class="btn" onclick="doInbound()">✔ 確認入庫，顯示放貨路線</button>
+      </div>
+
+      <div id="ioOut" style="display:none">
+        <h2>客人要貨，去哪一格拿？</h2>
+        <p class="hint">系統依先進先出決定拿哪幾批，再依櫃位排出走法。</p>
+        <div id="outRows"></div>
+        <button class="btn secondary small" onclick="addOutRow()">＋ 再加一項</button>
+        <br><button class="btn secondary" onclick="makePick()">產生揀貨單（先進先出）</button>
+      </div>
+    </div>
+
+    <div class="card" id="inResult" style="display:none">
+      <h2>放貨路線 — 照編號順序走</h2>
+      <div id="inSteps"></div>
+      <div id="inRoute" class="route"></div>
+      <button class="btn" onclick="resetInbound()">✔ 放好了</button>
+    </div>
+
+    <div class="card" id="pickCard" style="display:none">
+      <h2>揀貨單 — 照編號順序走</h2>
+      <div id="pickList"></div>
+      <div id="outRoute" class="route"></div>
+      <p class="hint">拿哪一批：入庫最久的先。走的順序：櫃位由近到遠。</p>
+      <button class="btn" onclick="confirmPick()">✔ 搬完了，確認出庫</button>
+    </div>
+  </section>
+
+  <!-- ========== 倉庫地圖（含移位 / 盤點） ========== -->
+  <section class="page" id="page-map">
+    <div class="card">
+      <div class="legend">
+        <span><kbd>左鍵</kbd>看內容</span>
+        <span><kbd>右鍵</kbd>改籠數、到期日</span>
+        <span><kbd>拖到空格</kbd>移位</span>
+        <span><kbd>拖到有貨格</kbd>互換</span>
+        <span><kbd>拖到左側</kbd>丟棄</span>
+      </div>
+      <div class="legend">
+        <span><i class="sw"></i>空格</span>
+        <span><i class="sw full"></i>有貨（顏色 = 品項）</span>
+        <span><i class="sw full old"></i>已超期</span>
+        <span><i class="sw full warn"></i>快到期</span>
+      </div>
+      <div class="maparea">
+        <div class="bin" id="bin" ondragover="binOver(event)" ondragleave="binLeave()" ondrop="binDrop(event)">
+          <span class="ico">🗑</span><b>丟棄</b><small>拖到這裡</small>
+        </div>
+        <div id="maps"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 紀錄 ========== -->
+  <section class="page" id="page-log">
+    <div class="card">
+      <h2>異動紀錄 <span class="hint">（永久保存；復原不會刪紀錄，只會標記並補一筆）</span></h2>
+      <div class="undobar">
+        <button class="btn secondary small" id="undoBtn" onclick="undo()"></button>
+        <button class="btn secondary small" id="redoBtn" onclick="redo()"></button>
+        <span class="hint">在任何頁面按 Ctrl+Z / Ctrl+Y 也可以</span>
+      </div>
+      <table><thead><tr><th>時間</th><th>類型</th><th>品項</th><th>籠數</th><th>櫃位</th><th>備註</th></tr></thead><tbody id="logTable"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<!-- 底部資訊面板（只顯示資訊；編輯用右鍵、移位用拖曳） -->
+<div class="sheet" id="sheet">
+  <div class="inner">
+    <div class="info" id="sheetInfo"></div>
+    <span class="hint">右鍵編輯 ・ 拖曳移位 / 丟棄 ・ 點其他地方關閉</span>
+  </div>
+</div>
+
+<!-- 編輯格子對話框 -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <h2 id="mTitle"></h2>
+    <label>籠數</label>
+    <div class="qty-ctl">
+      <button onclick="bumpQty(-1)">－</button>
+      <input type="number" id="mQty" min="0">
+      <button onclick="bumpQty(1)">＋</button>
+    </div>
+    <label>到期日</label>
+    <input type="date" id="mExpire">
+    <p class="hint" id="mHint"></p>
+    <div class="row">
+      <button class="btn secondary" onclick="closeModal()">取消</button>
+      <button class="btn" onclick="saveModal()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增 / 編輯 / 刪除品項（總覽卡片） -->
+<div class="modal-bg" id="pmBg" onclick="if(event.target===this) closeProdModal()">
+  <div class="modal">
+    <h2 id="pmTitle"></h2>
+    <label>名稱</label>
+    <input type="text" id="pmName" maxlength="10" placeholder="例如：高麗菜">
+    <label>保存天數（入庫後幾天到期）</label>
+    <input type="number" id="pmDays" min="1">
+    <label>顏色（地圖和卡片上代表這個品項）</label>
+    <div class="swatches" id="pmSwatches"></div>
+    <div class="row">
+      <button class="btn secondary" onclick="closeProdModal()">取消</button>
+      <button class="btn" onclick="saveProdModal()">儲存</button>
+    </div>
+    <div class="delzone" id="pmDelete">
+      <button class="btn link" id="pmDelBtn" onclick="document.getElementById('pmConfirm').style.display='';this.style.display='none'"></button>
+      <div id="pmConfirm" style="display:none">
+        <p>刪除後這個品項不會再出現在選單和總覽，歷史紀錄會保留（Ctrl+Z 可復原）。<br>請輸入品項名稱確認：</p>
+        <input type="text" id="pmConfirmName">
+        <button class="btn danger" style="margin-top:10px" onclick="deleteProduct()">確定刪除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

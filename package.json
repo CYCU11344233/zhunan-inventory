@@ -1,0 +1,23 @@
+{
+  "name": "zhunan-inventory",
+  "version": "0.1.0",
+  "description": "竹南冷凍倉儲 庫存管理系統（1151 系統分析與設計 小組專案）",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:init": "node db/init.js",
+    "db:reset": "node db/init.js --reset",
+    "seed": "node db/seed.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "mysql2": "^3.11.5"
+  }
+}
