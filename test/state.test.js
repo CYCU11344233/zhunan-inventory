@@ -66,7 +66,8 @@ test('復原 / 重做按鈕的狀態（§5.3 規則）', async () => {
   let { body } = await get('/api/state');
   assert.deepEqual(body.undo, { canUndo: true, undoLabel: '入庫 甘藍菜 5 籠', canRedo: false, redoLabel: null });
 
-  await pool.query('UPDATE action SET undone = 1 WHERE id = ?', [a1.insertId]);   // 假裝被復原了
+  await pool.query('UPDATE action SET undone = 1 WHERE id = ?', [a1.insertId]);   // 假裝被復原了（和 src/undo.js 一樣：標記 + 補一筆 undo）
+  await pool.query("INSERT INTO action (label, kind, target_action_id) VALUES ('復原「入庫 甘藍菜 5 籠」', 'undo', ?)", [a1.insertId]);
   ({ body } = await get('/api/state'));
   assert.deepEqual(body.undo, { canUndo: false, undoLabel: null, canRedo: true, redoLabel: '入庫 甘藍菜 5 籠' });
 

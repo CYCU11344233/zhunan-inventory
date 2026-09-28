@@ -4,7 +4,9 @@
  * 提供兩樣東西給其他檔案用：
  *   pool             MySQL 連線池。只讀資料時直接 pool.query(...)
  *   withTransaction  會改資料的動作都包在這裡：中間任何一句 SQL 失敗，整個退回（rollback），
- *                    不會出現「庫存扣了、紀錄沒寫」這種半套的狀況
+ *                    不會出現「庫存扣了、紀錄沒寫」這種半套的狀況。
+ *                    而且「一次只跑一個」：兩台平板同時發單，第二個會等第一個做完再開始，
+ *                    這樣「這批貨是不是已經被別張單保留」一定看得到最新的答案（倉庫只有 36 格，排隊只要幾毫秒）
  *
  * 用法：
  *   const { pool, withTransaction } = require('./db');
@@ -16,6 +18,7 @@
  */
 require('dotenv').config();              // 讀 .env（帳密、TZ），一定要最先執行
 const mysql = require('mysql2/promise');
+const { UserError } = require('./errors');
 
 // 目前時區和 UTC 差多少，轉成 MySQL 看得懂的 '+08:00'
 function tzOffset() {
@@ -58,17 +61,25 @@ async function connect(extra = {}) {
 }
 
 // 開交易 → 執行 fn(conn) → 成功就 commit，失敗就 rollback 並把錯誤往外丟
+// 開交易前先拿「寫入鎖」（MySQL 的 GET_LOCK，每個資料庫一把），做完才放，所以寫入動作一個接一個
 async function withTransaction(fn) {
   const conn = await pool.getConnection();
+  let locked = false;
   try {
+    const [[{ ok }]] = await conn.query("SELECT GET_LOCK(CONCAT('zhunan_write:', DATABASE()), 10) AS ok");
+    if (ok !== 1) throw new UserError('系統正忙，請再按一次');
+    locked = true;
     await conn.beginTransaction();
-    const result = await fn(conn);
-    await conn.commit();
-    return result;
-  } catch (err) {
-    await conn.rollback();
-    throw err;
+    try {
+      const result = await fn(conn);
+      await conn.commit();
+      return result;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    }
   } finally {
+    if (locked) await conn.query("SELECT RELEASE_LOCK(CONCAT('zhunan_write:', DATABASE()))").catch(() => {});
     conn.release();
   }
 }

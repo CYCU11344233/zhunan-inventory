@@ -102,6 +102,32 @@ async function activeProduct(conn, productId, label = '') {
   return p;
 }
 
+// 列出目前「單子保留」被破壞的地方（復原／重做前後各查一次，比較有沒有「新」的問題）：
+//   1. 還沒回報的揀貨單要拿的，比那格現有的多
+//   2. 還沒回報的放貨單預定的空格，已經有貨
+//   3. 同一個空格被兩張還沒回報的放貨單預定
+// 回 [{ key, msg }]；盤點、改籠數可以合法地造成第 1 種（會提醒），所以只擋「這次動作新造成的」
+async function holdProblems(conn) {
+  const out = [];
+  const [over] = await conn.query(
+    `SELECT MIN(pl.pick_id) AS pickId, pl.slot_id AS slotId
+     FROM pick_line pl JOIN pick_order po ON po.id = pl.pick_id AND po.status = 'open'
+     LEFT JOIN stock s ON s.batch_id = pl.batch_id AND s.slot_id = pl.slot_id
+     GROUP BY pl.batch_id, pl.slot_id HAVING SUM(pl.qty) > COALESCE(MAX(s.qty), 0)`);
+  for (const r of over) out.push({ key: `pick:${r.slotId}:${r.pickId}`, msg: `${r.slotId} 的貨已經開在揀貨單 #${r.pickId}，請先回報或取消那張單` });
+  const [full] = await conn.query(
+    `SELECT DISTINCT pl.put_id AS putId, pl.slot_id AS slotId
+     FROM put_line pl JOIN put_order po ON po.id = pl.put_id AND po.status = 'open'
+     JOIN stock s ON s.slot_id = pl.slot_id AND s.qty > 0`);
+  for (const r of full) out.push({ key: `full:${r.slotId}:${r.putId}`, msg: `${r.slotId} 已經被放貨單 #${r.putId} 預定，請先回報或取消那張單` });
+  const [twice] = await conn.query(
+    `SELECT pl.slot_id AS slotId, MIN(pl.put_id) AS a, MAX(pl.put_id) AS b
+     FROM put_line pl JOIN put_order po ON po.id = pl.put_id AND po.status = 'open'
+     GROUP BY pl.slot_id HAVING COUNT(DISTINCT pl.put_id) > 1`);
+  for (const r of twice) out.push({ key: `twice:${r.slotId}:${r.a}:${r.b}`, msg: `${r.slotId} 會被放貨單 #${r.a} 和 #${r.b} 同時預定，請先回報或取消其中一張` });
+  return out;
+}
+
 // 所有櫃位的走路順序資訊，給 fifo.walkSort 用
 async function slotInfo(conn) {
   const [rows] = await conn.query(
@@ -111,5 +137,5 @@ async function slotInfo(conn) {
 
 module.exports = {
   newAction, record, applyMovement,
-  localToday, addDays, isDate, isPosInt, occupantOf, assertSlot, activeProduct, slotInfo,
+  localToday, addDays, isDate, isPosInt, occupantOf, assertSlot, activeProduct, slotInfo, holdProblems,
 };

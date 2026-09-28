@@ -10,6 +10,7 @@
 
    寫入：每個會改資料的動作都呼叫後端 API（入庫、出庫、移位、盤點、丟棄、品項、復原），
      成功後 reload() 重抓資料重畫，所以畫面永遠等於資料庫。畫面與操作方式和 Demo 一樣。
+   系統維護 2.0（docs/04-系統維護.md）：入庫、出庫改成「發單 → 回報」，待回報的單與盤點頁在 tasks.js。
    ===================================================================== */
 let WH = [], ROWS = 6, LEVELS = 3;                 // 庫別、排數、層數：由資料庫的 warehouse 表決定
 let today = new Date(); today.setHours(0, 0, 0, 0);   // reload() 會換成伺服器的「今天」
@@ -26,6 +27,11 @@ const activeProducts = () => products.filter(p => !p.deleted);   // 刪除是軟
 // 新增品項時可選的顏色（先列現有品項的顏色，再補幾個，系統會自動挑沒用過的）
 let PALETTE = [];
 let undoInfo = { canUndo: false, canRedo: false };   // 復原 / 重做按鈕的狀態（後端算好的）
+// 系統維護 2.0：還沒回報的揀貨單 / 放貨單、各庫最後一次盤點、盤點紀錄、作業統計（畫在 tasks.js）
+let openPicks = [], openPuts = [], lastStocktakes = {}, stocktakes = [], statsInfo = null, pendingWarn = 30;
+let pickHold = {}, putHold = {};   // 哪一格被哪張揀貨單保留 { 'A-01-2': [3] }；哪個空格被哪張放貨單預定 { 'B-02-1': 2 }
+// 使用者打的字（品名、原因）放進畫面前先跳脫，避免 < > 把畫面弄壞
+const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // 異動紀錄：後端的欄位 → 畫面「紀錄」表格要的欄位
 function toLogRow(m) {
@@ -37,7 +43,8 @@ function toLogRow(m) {
 
 // 從後端重抓全部資料，然後重畫整個畫面
 async function reload() {
-  const [s, ms] = await Promise.all([api.get('/api/state'), api.get('/api/movements?limit=500')]);
+  const [s, ms, sts, st] = await Promise.all([api.get('/api/state'), api.get('/api/movements?limit=500'),
+    api.get('/api/stocktakes?limit=20'), api.get('/api/stats?days=7')]);
   today = parseDate(s.today);
   WH = s.warehouses.map(w => w.code);
   ROWS = Math.max(...s.warehouses.map(w => w.rows));
@@ -49,6 +56,11 @@ async function reload() {
   movements = ms.reverse().map(toLogRow);   // 後端新的在前；畫面要舊的在前（renderLog 會自己倒過來）
   PALETTE = [...new Set([...products.map(p => p.color), '#0097a7', '#c2185b', '#fbc02d', '#455a64', '#7cb342', '#ff7043', '#3949ab', '#795548'])];
   undoInfo = s.undo;
+  openPicks = s.openPicks; openPuts = s.openPuts; lastStocktakes = s.lastStocktakes; pendingWarn = s.pendingWarnMinutes;
+  stocktakes = sts; statsInfo = st;
+  pickHold = {}; putHold = {};
+  for (const o of openPicks) for (const l of o.lines) (pickHold[l.slotId] = pickHold[l.slotId] || []).push(o.id);
+  for (const o of openPuts) for (const l of o.lines) putHold[l.slotId] = o.id;
   renderAll();
 }
 
@@ -57,6 +69,7 @@ const stockAt = (sid) => stocks.find(s => s.slotId === sid && s.qty > 0);
 const batchOf = (s) => batches.find(b => b.id === s.batchId);
 const productOfStock = (s) => product(batchOf(s).productId);
 const emptySlots = () => slots.filter(sl => !stockAt(sl.id));
+const freeSlots = () => emptySlots().filter(sl => !putHold[sl.id]);   // 空的、而且沒被放貨單預定（可以放新貨）
 const slotObj = (sid) => slots.find(s => s.id === sid);
 const stockQty = (pid) => stocks.filter(s => s.qty > 0 && batchOf(s).productId === pid).reduce((a, s) => a + s.qty, 0);
 
@@ -140,6 +153,8 @@ function mapHTML(opts = {}) {
           style = `style="background:${p.color}"`;
           body = `<b>${pad(r)}-${l}</b><span>${p.name}</span><span>${st.qty} 籠</span>`;
         }
+        if (!st && putHold[sid]) { cls.push('held'); body = `<b>${pad(r)}-${l}</b><span>預定</span><span>放#${putHold[sid]}</span>`; }
+        if (st && pickHold[sid] && !hl) body += `<span class="badge">揀#${pickHold[sid].join(',')}</span>`;
         if (hl && hl[sid]) { cls.push('hl'); body += `<span class="step">${hl[sid]}</span>`; }
         if (opts.interactive && sid === sheetSid) cls.push('sel');
         let ev = '';
@@ -152,8 +167,8 @@ function mapHTML(opts = {}) {
           const n = opts.pick.chosen[sid];
           if (n) { cls.push('hl'); body += `<span class="step">${n}</span>`; }   // 表單裡選到的格子
           const mine = n === opts.pick.row + 1;
-          if (!st && (!n || mine)) { cls.push('pickable'); ev = `onclick="pickSlot(${opts.pick.row}, '${sid}')"`; }   // 空格、且沒被其他項選走
-          else if (st) cls.push('taken');
+          if (!st && !putHold[sid] && (!n || mine)) { cls.push('pickable'); ev = `onclick="pickSlot(${opts.pick.row}, '${sid}')"`; }   // 空格、且沒被其他項選走
+          else if (st || putHold[sid]) cls.push('taken');
         }
         html += `<div class="${cls.join(' ')}" ${style} ${ev}>${body}</div>`;
       }
@@ -318,7 +333,7 @@ function slotSelects(prefix, i, r) {
 }
 // 挑一個還沒被表單其他列用掉的空格
 function nextEmptySlot(taken) {
-  return emptySlots().find(s => !taken.includes(s.id)) || slots[0];
+  return freeSlots().find(s => !taken.includes(s.id)) || slots[0];
 }
 // 入 / 出庫切換
 function setMode(m) {
@@ -326,7 +341,6 @@ function setMode(m) {
   document.getElementById('segOut').classList.toggle('active', m === 'out');
   document.getElementById('ioIn').style.display = m === 'in' ? '' : 'none';
   document.getElementById('ioOut').style.display = m === 'out' ? '' : 'none';
-  document.getElementById('inResult').style.display = 'none';
   if (m === 'in') clearPick();
 }
 
@@ -367,7 +381,7 @@ function renderInbound() {
       </div>
       ${slotSelects('inRows', i, r)}
       ${inPickRow === i ? `<div class="picker">
-          <div class="whtabs">${WH.map(w => `<button class="${w === r.wh ? 'active' : ''}" onclick="inRows[${i}].wh='${w}';renderInbound()">${w} 庫（空 ${emptySlots().filter(s => s.wh === w).length} 格）</button>`).join('')}
+          <div class="whtabs">${WH.map(w => `<button class="${w === r.wh ? 'active' : ''}" onclick="inRows[${i}].wh='${w}';renderInbound()">${w} 庫（空 ${freeSlots().filter(s => s.wh === w).length} 格）</button>`).join('')}
             <button style="margin-left:auto;border-color:var(--line);color:var(--muted)" onclick="inPickRow=null;renderInbound()">收起地圖</button></div>
           <p class="hint" style="margin:4px 0">點空格就選定；淡的是已有貨；綠框編號 = 這張表單裡各項選的格子。</p>
           ${mapHTML({ wh: r.wh, pick: { row: i, chosen: chosenSlots() } })}
@@ -386,34 +400,26 @@ function renderInbound() {
     </div>`).join('');
 }
 function doInbound() {
-  // 先檢查：籠數 > 0、櫃位是空的、表單內沒有重複櫃位（後端也會再檢查一次）
+  // 先檢查：籠數 > 0、櫃位是空的、沒被別張放貨單預定、表單內沒有重複櫃位（後端也會再檢查一次）
   const seen = new Set();
   for (const [i, r] of inRows.entries()) {
     const sid = slotId(r.wh, r.row, r.level);
     if (!r.qty || r.qty < 1) return toast(`第 ${i + 1} 項籠數不正確`);
     if (stockAt(sid)) return toast(`第 ${i + 1} 項：${sid} 已經有貨，請換一格`);
+    if (putHold[sid]) return toast(`第 ${i + 1} 項：${sid} 已經被放貨單 #${putHold[sid]} 預定，請換一格`);
     if (seen.has(sid)) return toast(`第 ${i + 1} 項：${sid} 跟其他項重複`);
     seen.add(sid);
   }
   const items = inRows.map(r => ({ productId: r.pid, qty: r.qty, slotId: slotId(r.wh, r.row, r.level), expireDate: expireOf(r) }));
   return send(async () => {
-    const res = await api.post('/api/inbound', { items });   // 後端回傳已依走路順序排好的放貨步驟
+    // 系統維護 NO1：先發放貨單（存進資料庫、預定空格），員工放好逐格打勾回報，才真的入庫
+    const put = await api.post('/api/puts', { items });
+    inRows = []; inPickRow = 0;
+    openOrder = `put-${put.id}`;
     await reload();
-    const steps = res.steps;
-    const hl = {}; steps.forEach((s, i) => hl[s.slotId] = i + 1);
-    document.getElementById('inSteps').innerHTML = steps.map((s, i) =>
-      `<div class="pick">${i + 1}. 把 <b>${s.productName} ${s.qty} 籠</b> 放到 <b>${s.slotId}</b><br><span class="hint">到期 ${s.expireDate}</span></div>`).join('');
-    document.getElementById('inRoute').innerHTML = mapHTML({ highlight: hl });
-    document.getElementById('ioForm').style.display = 'none';
-    document.getElementById('inResult').style.display = '';
-    toast(`已入庫 ${steps.length} 項`);
+    toast(`放貨單 #${put.id} 已發出：照路線放好，逐格打勾後回報`);
+    showPending();
   });
-}
-function resetInbound() {
-  inRows = []; inPickRow = 0;
-  document.getElementById('ioForm').style.display = '';
-  document.getElementById('inResult').style.display = 'none';
-  renderInbound();
 }
 
 /* ===================== 出庫 ===================== */
@@ -450,13 +456,17 @@ function makePick() {
     document.getElementById('pickCard').style.display = '';
   });
 }
-function confirmPick() {
+// 發出揀貨單（系統維護 NO1）：存進資料庫、保留這些貨；員工搬完逐格打勾回報，才扣庫存
+function issuePick() {
   if (!currentPlan) return;
   return send(async () => {
-    await api.post('/api/outbound/confirm', { plan: currentPlan.map(p => ({ slotId: p.slotId, batchId: p.batchId, qty: p.qty })) });
-    toast('出庫完成，庫存已更新');
-    outRows = [];
+    // 送出畫面上預覽的這一張（員工看到的路線 = 存下來的單）；這段時間貨被動過的話，後端會擋下請重新產生
+    const r = await api.post('/api/picks', { lines: currentPlan.map(x => ({ slotId: x.slotId, batchId: x.batchId, qty: x.qty })) });
+    outRows = []; clearPick();
+    openOrder = `pick-${r.pick.id}`;
     await reload();
+    toast(`揀貨單 #${r.pick.id} 已發出：照路線去拿，逐格打勾後回報` + (r.shortages.length ? `（${r.shortages.join('、')}）` : ''));
+    showPending();
   });
 }
 
@@ -472,15 +482,23 @@ function showCell(sid) {
   document.getElementById('sheet').classList.add('show');
   document.querySelectorAll('#maps .cell.sel').forEach(c => c.classList.remove('sel'));
   event.currentTarget.classList.add('sel');
-  if (!st) { document.getElementById('sheetInfo').innerHTML = `<b>${sid}</b>：空格`; return; }
+  document.getElementById('sheetBtns').innerHTML = '';
+  if (!st) {
+    document.getElementById('sheetInfo').innerHTML = `<b>${sid}</b>：空格` + (putHold[sid] ? `（已被放貨單 #${putHold[sid]} 預定）` : '');
+    return;
+  }
   const b = batchOf(st), stat = statusOf(b);
   document.getElementById('sheetInfo').innerHTML =
-    `<b>${sid}</b>：${productOfStock(st).name} <b>${st.qty} 籠</b> <span class="tag ${stat.key}">${stat.text}</span><br>
+    `<b>${sid}</b>：${esc(productOfStock(st).name)} <b>${st.qty} 籠</b> <span class="tag ${stat.key}">${stat.text}</span>` +
+    (pickHold[sid] ? ` <span class="tag warn">已開在揀貨單 #${pickHold[sid].join('、#')}</span>` : '') + `<br>
      <span class="hint">批次 ${b.id}｜${b.inDate} 入庫｜${ageText(b)}｜到期 ${b.expireDate}</span>`;
+  // 手機、平板沒有右鍵：直接在面板上放按鈕
+  document.getElementById('sheetBtns').innerHTML = `<button class="btn small" onclick="openModal('${sid}')">✎ 改籠數／到期日／報廢</button>`;
 }
 function hideSheet() {
   sheetSid = null;
   document.getElementById('sheet').classList.remove('show');
+  document.getElementById('sheetBtns').innerHTML = '';
   document.querySelectorAll('#maps .cell.sel').forEach(c => c.classList.remove('sel'));
 }
 // 點格子以外的地方（面板本身除外）就關閉面板
@@ -530,7 +548,21 @@ function openModal(sid) {
   document.getElementById('mQty').value = st.qty;
   document.getElementById('mExpire').value = b.expireDate;
   document.getElementById('mHint').textContent = `批次 ${b.id}，${b.inDate} 入庫。籠數改成 0 會清空這格。`;
+  document.getElementById('mSpoil').value = '';
   document.getElementById('modalBg').classList.add('show');
+}
+// 只丟幾籠壞掉的，並記下原因（POST /api/discard 帶 qty、reason）
+function spoilModal() {
+  const sid = modalSlot, st = stockAt(sid); if (!st) return closeModal();
+  const qty = +document.getElementById('mSpoil').value, reason = document.getElementById('mReason').value;
+  if (!qty || qty < 1) return toast('請填要丟幾籠');
+  if (qty > st.qty) return toast(`這格只有 ${st.qty} 籠`);
+  return send(async () => {
+    const r = await api.post('/api/discard', { slotId: sid, qty, reason });
+    closeModal(); hideSheet();
+    toast(`已丟棄 ${sid} ${r.productName} ${r.qty} 籠（${reason}），剩 ${r.left} 籠（Ctrl+Z 可復原）`);
+    await reload();
+  });
 }
 function bumpQty(n) { const el = document.getElementById('mQty'); el.value = Math.max(0, (+el.value || 0) + n); }
 function closeModal() { document.getElementById('modalBg').classList.remove('show'); modalSlot = null; }
@@ -542,7 +574,7 @@ function saveModal() {
     const r = await api.post('/api/adjust', { slotId: sid, qty, expireDate: expire });   // 籠數不同 = 盤點；日期不同 = 改到期日
     closeModal(); hideSheet();
     if (!r.changed) return;
-    toast('已更新');
+    toast(r.warnings && r.warnings.length ? '已更新。⚠ ' + r.warnings.join('；') : '已更新');
     await reload();
   });
 }
@@ -561,7 +593,7 @@ function renderLog() {
 }
 
 /* ===================== 共用 ===================== */
-function renderAll() { renderOverview(); renderInbound(); renderOutbound(); renderMap(); renderLog(); }
+function renderAll() { renderOverview(); renderInbound(); renderOutbound(); renderMap(); renderLog(); renderPending(); renderCount(); renderStats(); }
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
 document.querySelectorAll('#nav button').forEach(btn => btn.onclick = () => {
   document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
@@ -570,9 +602,6 @@ document.querySelectorAll('#nav button').forEach(btn => btn.onclick = () => {
   document.getElementById('page-' + btn.dataset.page).classList.add('active');
   if (btn.dataset.page !== 'map') hideSheet();
 });
+// 從程式切換分頁（提醒列的按鈕用）
+function goto(page) { document.querySelector(`#nav button[data-page="${page}"]`).click(); window.scrollTo(0, 0); }
 document.querySelector('#nav button').click();
-// 開頁面：先從資料庫抓資料再畫；連不上就把原因顯示在畫面上
-reload().catch((e) => {
-  document.querySelector('main').innerHTML =
-    `<div class="card" style="color:var(--danger)"><b>讀不到資料：</b>${e.message}<br><span class="hint">確認伺服器（npm start）和 MySQL 都有開著，再重新整理頁面。</span></div>`;
-});

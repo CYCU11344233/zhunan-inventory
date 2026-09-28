@@ -192,6 +192,58 @@
   }
   @media (max-width: 480px) { .pgrid { grid-template-columns: 1fr; } }
 
+  /* ====== 系統維護 2.0：提醒列、待回報的單、盤點、統計 ====== */
+  .alerts { max-width: 1000px; margin: 12px auto 0; padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+  .alerts:empty { display: none; }
+  .alert { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: 8px; font-size: 16px; border-left: 6px solid var(--warn); background: #fdf3e1; }
+  .alert.danger { border-left-color: var(--danger); background: #fbe7e5; }
+  .alert.info { border-left-color: #2e86c1; background: #e8f1f8; }
+  .alert span { flex: 1 1 240px; }
+  .alert button { font-size: 15px; padding: 8px 14px; border-radius: 6px; border: none; background: var(--primary); color: #fff; cursor: pointer; }
+  .order { border: 1px solid var(--line); border-left: 6px solid var(--warn); border-radius: 8px; margin-bottom: 10px; background: #fff; }
+  .order.late { border-left-color: var(--danger); }
+  .order .ohead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px; cursor: pointer; }
+  .order .ohead b { flex: 1 1 200px; }
+  .order .prog { font-weight: bold; color: var(--primary); white-space: nowrap; }
+  .order .obody { padding: 0 12px 12px; }
+  .order.late .age { color: var(--danger); font-weight: bold; }
+  .kind { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 14px; font-weight: bold; color: #fff; background: var(--primary); white-space: nowrap; }
+  .kind.put { background: #2e86c1; }
+  .stop { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 8px; background: #fdf6e3; margin: 8px 0; font-size: 18px; line-height: 1.5; }
+  .stop b { color: var(--primary); font-size: 21px; }
+  .stop.done { background: #e8f3ed; }
+  .stop.done .what { opacity: .6; }
+  .stop .what { flex: 1; }
+  .stop select { width: auto; font-size: 15px; padding: 6px 8px; margin-top: 4px; }
+  .chk { flex: 0 0 56px; height: 56px; border-radius: 50%; border: 3px solid var(--primary); background: #fff; color: var(--primary); font-size: 22px; font-weight: bold; cursor: pointer; }
+  .stop.done .chk { background: var(--primary); color: #fff; }
+  .obtns { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cell .badge { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); background: #1f2933; color: #fff; font-size: 10px; padding: 0 5px; border-radius: 6px; white-space: nowrap; }
+  .cell.held { background: repeating-linear-gradient(45deg, #e8f1f8, #e8f1f8 6px, #d6e6f3 6px, #d6e6f3 12px); border: 2px dashed #2e86c1; color: #2e86c1; }
+  .crow { display: grid; grid-template-columns: minmax(150px, 1.3fr) 1fr 1fr minmax(150px, 1.2fr); gap: 10px; align-items: center; padding: 10px; border-bottom: 1px solid var(--line); }
+  .crow.chg { background: #fdf3e1; }
+  .crow.spoil { background: #fbe7e5; }
+  .crow .cslot { font-size: 16px; line-height: 1.5; }
+  .crow .cslot .dot { display: inline-block; vertical-align: middle; margin: 0 4px 0 6px; }
+  .crow label { margin: 0 0 4px; font-size: 13px; color: var(--muted); }
+  .crow .qty-ctl button { width: 40px; height: 40px; font-size: 18px; }
+  .crow .qty-ctl input { font-size: 18px; padding: 6px; }
+  .crow select, .crow input[type=text] { font-size: 15px; padding: 7px; }
+  .csum { margin: 12px 0 0; font-size: 17px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .kpi .v { font-size: 26px; font-weight: bold; color: var(--primary); }
+  .kpi .v small { font-size: 14px; color: var(--muted); font-weight: normal; }
+  .kpi .k { color: var(--muted); font-size: 14px; }
+  .kpi.bad .v { color: var(--danger); }
+  .spoilbox { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 4px; }
+  @media (max-width: 600px) { nav button { min-width: 0; padding: 14px 4px; font-size: 15px; } }
+  @media (max-width: 700px) {
+    .crow { grid-template-columns: 1fr 1fr; }
+    .crow .cslot { grid-column: 1 / -1; }
+    .crow .creason { grid-column: 1 / -1; }
+  }
+
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; opacity: 0; transition: .3s; pointer-events: none; z-index: 70; }
   .toast.show { opacity: 1; }
 </style>
@@ -206,8 +258,12 @@
   <button data-page="overview">總覽</button>
   <button data-page="io">入／出庫</button>
   <button data-page="map">倉庫地圖</button>
+  <button data-page="count">盤點</button>
   <button data-page="log">紀錄</button>
 </nav>
+
+<!-- 提醒列：還沒回報的單、今天還沒盤點的庫（每一頁都看得到） -->
+<div class="alerts" id="alerts"></div>
 
 <main>
   <!-- ========== 總覽 ========== -->
@@ -240,6 +296,11 @@
 
   <!-- ========== 入 / 出庫（同一頁，用切換鈕選） ========== -->
   <section class="page" id="page-io">
+    <div class="card" id="pendingCard" style="display:none">
+      <h2>待回報的單 <span class="hint">搬完、放好一格就打勾；全部打勾再回報，庫存才會更新</span></h2>
+      <div id="pendingList"></div>
+    </div>
+
     <div class="card" id="ioForm">
       <div class="seg">
         <button id="segIn" class="active" onclick="setMode('in')">入庫</button>
@@ -251,7 +312,8 @@
         <p class="hint">櫃位已預填空格，可用下拉改或直接在地圖上點。到期日預設 = 今天 + 保存天數。</p>
         <div id="inRows"></div>
         <button class="btn secondary small" onclick="addInRow()">＋ 再加一項</button>
-        <br><button class="btn" onclick="doInbound()">✔ 確認入庫，顯示放貨路線</button>
+        <br><button class="btn" onclick="doInbound()">📋 發出放貨單，顯示放貨路線</button>
+        <p class="hint">放貨單發出後，那幾格會先保留給這批貨；員工放好、逐格打勾回報，才算入庫。</p>
       </div>
 
       <div id="ioOut" style="display:none">
@@ -263,19 +325,13 @@
       </div>
     </div>
 
-    <div class="card" id="inResult" style="display:none">
-      <h2>放貨路線 — 照編號順序走</h2>
-      <div id="inSteps"></div>
-      <div id="inRoute" class="route"></div>
-      <button class="btn" onclick="resetInbound()">✔ 放好了</button>
-    </div>
-
     <div class="card" id="pickCard" style="display:none">
       <h2>揀貨單 — 照編號順序走</h2>
       <div id="pickList"></div>
       <div id="outRoute" class="route"></div>
       <p class="hint">拿哪一批：入庫最久的先。走的順序：櫃位由近到遠。</p>
-      <button class="btn" onclick="confirmPick()">✔ 搬完了，確認出庫</button>
+      <button class="btn" onclick="issuePick()">📋 發出揀貨單</button>
+      <p class="hint">發出後這些貨會先保留給這張單；員工搬完、逐格打勾回報，才會扣庫存。沒回報的單會一直掛在最上面。</p>
     </div>
   </section>
 
@@ -284,7 +340,7 @@
     <div class="card">
       <div class="legend">
         <span><kbd>左鍵</kbd>看內容</span>
-        <span><kbd>右鍵</kbd>改籠數、到期日</span>
+        <span><kbd>右鍵</kbd>改籠數、到期日、報廢</span>
         <span><kbd>拖到空格</kbd>移位</span>
         <span><kbd>拖到有貨格</kbd>互換</span>
         <span><kbd>拖到左側</kbd>丟棄</span>
@@ -294,6 +350,8 @@
         <span><i class="sw full"></i>有貨（顏色 = 品項）</span>
         <span><i class="sw full old"></i>已超期</span>
         <span><i class="sw full warn"></i>快到期</span>
+        <span><i class="sw" style="border:2px dashed #2e86c1;background:#e8f1f8"></i>放貨單預定</span>
+        <span><kbd>揀#3</kbd>已開在揀貨單</span>
       </div>
       <div class="maparea">
         <div class="bin" id="bin" ondragover="binOver(event)" ondragleave="binLeave()" ondrop="binDrop(event)">
@@ -301,6 +359,22 @@
         </div>
         <div id="maps"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ========== 盤點（系統維護 NO2） ========== -->
+  <section class="page" id="page-count">
+    <div class="card">
+      <h2>盤點 <span class="hint">一次盤一整座庫。逐格點數，只要改「數量不一樣」和「有壞掉」的格子</span></h2>
+      <div class="whtabs" id="countTabs"></div>
+      <div id="countRows"></div>
+      <div class="csum" id="countSummary"></div>
+      <button class="btn" id="countBtn" onclick="submitCount()"></button>
+      <div id="countResult"></div>
+    </div>
+    <div class="card">
+      <h2>盤點紀錄 <span class="hint">（點一筆看明細）</span></h2>
+      <div id="countHistory"></div>
     </div>
   </section>
 
@@ -313,7 +387,11 @@
         <button class="btn secondary small" id="redoBtn" onclick="redo()"></button>
         <span class="hint">在任何頁面按 Ctrl+Z / Ctrl+Y 也可以</span>
       </div>
-      <table><thead><tr><th>時間</th><th>類型</th><th>品項</th><th>籠數</th><th>櫃位</th><th>備註</th></tr></thead><tbody id="logTable"></tbody></table>
+      <div style="overflow-x:auto"><table><thead><tr><th>時間</th><th>類型</th><th>品項</th><th>籠數</th><th>櫃位</th><th>備註</th></tr></thead><tbody id="logTable"></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>最近 7 天作業統計 <span class="hint">（發單到回報的時間 = 員工實際跑一趟的時間；給「效率評估」用）</span></h2>
+      <div class="kpis" id="statsBox"></div>
     </div>
   </section>
 </main>
@@ -322,7 +400,8 @@
 <div class="sheet" id="sheet">
   <div class="inner">
     <div class="info" id="sheetInfo"></div>
-    <span class="hint">右鍵編輯 ・ 拖曳移位 / 丟棄 ・ 點其他地方關閉</span>
+    <span id="sheetBtns"></span>
+    <span class="hint">拖曳移位 / 丟棄 ・ 點其他地方關閉</span>
   </div>
 </div>
 
@@ -342,6 +421,14 @@
     <div class="row">
       <button class="btn secondary" onclick="closeModal()">取消</button>
       <button class="btn" onclick="saveModal()">儲存</button>
+    </div>
+    <div class="spoilbox">
+      <label>壞掉要丟 <span class="hint">（例如一箱爛了；只丟這幾籠，會記下原因）</span></label>
+      <div class="row">
+        <input type="number" id="mSpoil" min="1" placeholder="幾籠">
+        <select id="mReason"><option>腐爛</option><option>凍傷</option><option>包裝破損</option><option>超期</option><option>其他</option></select>
+      </div>
+      <button class="btn danger small" style="margin-top:10px" onclick="spoilModal()">🗑 丟掉這幾籠</button>
     </div>
   </div>
 </div>
@@ -375,5 +462,6 @@
 
 <script src="api.js"></script>
 <script src="app.js"></script>
+<script src="tasks.js"></script>
 </body>
 </html>

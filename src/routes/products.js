@@ -76,6 +76,10 @@ router.delete('/products/:id', route(async (req) => {
     const [[{ qty }]] = await conn.query(
       'SELECT COALESCE(SUM(s.qty), 0) AS qty FROM stock s JOIN batch b ON b.id = s.batch_id WHERE b.product_id = ?', [p.id]);
     if (Number(qty) > 0) throw new UserError(`還有 ${qty} 籠庫存，出清後才能刪除`);
+    const [[open]] = await conn.query(
+      `SELECT po.id FROM put_line pl JOIN put_order po ON po.id = pl.put_id
+       WHERE po.status = 'open' AND pl.product_id = ? LIMIT 1`, [p.id]);
+    if (open) throw new UserError(`放貨單 #${open.id} 還有這個品項沒回報，回報或取消後才能刪除`);
     const actionId = await S.newAction(conn, `刪除品項 ${p.name}`);
     await S.record(conn, actionId, {
       type: '主檔', productId: p.id, productName: p.name,

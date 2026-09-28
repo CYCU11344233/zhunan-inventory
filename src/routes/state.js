@@ -10,12 +10,19 @@
  *   batches     [{ id, productId, inDate, expireDate }]      還有貨的批次
  *   stocks      [{ batchId, slotId, qty }]                   還有貨的庫存堆（qty > 0）
  *   undo        { canUndo, undoLabel, canRedo, redoLabel }
+ *   openPicks   [{ id, label, createdAt, minutes, lines: [...] }]   還沒回報的揀貨單（系統維護 NO1，舊的在前）
+ *   openPuts    [{ id, label, createdAt, minutes, lines: [...] }]   還沒回報的放貨單（預定的空格在 lines[].slotId）
+ *   pendingWarnMinutes  發單後超過幾分鐘沒回報，畫面要標紅提醒
+ *   lastStocktakes { A: { id, time, diffCount, spoiledQty } | null, B: … }   每座庫最後一次盤點（NO2）
  * 資料只有 36 格，全部一次給最簡單；前端每做完一個動作就重抓一次。
  */
 const express = require('express');
 const { pool } = require('../db');
 const { undoStatus } = require('../undo');
 const { localToday } = require('../stock');
+const { listPicks } = require('../picks');
+const { listPuts } = require('../puts');
+const { PENDING_WARN_MINUTES } = require('../stats');
 
 const router = express.Router();
 
@@ -40,6 +47,16 @@ router.get('/state', async (req, res, next) => {
        FROM batch WHERE id IN (SELECT batch_id FROM stock WHERE qty > 0)
        ORDER BY in_date, id`);
     const u = await undoStatus(pool);
+    const openPicks = (await listPicks(pool, { status: 'open', limit: 500 })).reverse();
+    const openPuts = (await listPuts(pool, { status: 'open', limit: 500 })).reverse();
+    const [takes] = await pool.query(
+      `SELECT st.id, st.warehouse_code AS wh, st.created_at AS time, st.diff_count AS diffCount, st.spoiled_qty AS spoiledQty
+       FROM stocktake st JOIN (SELECT warehouse_code, MAX(id) AS id FROM stocktake GROUP BY warehouse_code) last
+         ON last.id = st.id`);
+    const lastStocktakes = Object.fromEntries(warehouses.map((w) => {
+      const t = takes.find((x) => x.wh === w.code);
+      return [w.code, t ? { id: t.id, time: t.time.slice(0, 16), diffCount: t.diffCount, spoiledQty: t.spoiledQty } : null];
+    }));
 
     res.json({
       today: localToday(),
@@ -50,6 +67,10 @@ router.get('/state', async (req, res, next) => {
       batches,
       stocks,
       undo: u,
+      openPicks,
+      openPuts,
+      pendingWarnMinutes: PENDING_WARN_MINUTES,
+      lastStocktakes,
     });
   } catch (err) {
     next(err);

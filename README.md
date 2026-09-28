@@ -11,6 +11,7 @@
 | 3. 技術設計 | ✅ 已確認 | [`docs/02-技術方案.md`](docs/02-技術方案.md) |
 | 4. 產品實現 | ✅ M1～M6 完成：所有操作都寫進資料庫，前端沿用 Demo 的畫面與操作（技術方案 §6）；已照本 README 從零安裝實測通過（25 項自動測試全過，入庫／FIFO 出庫／移位／復原都確認寫進 MySQL） | `db/`、`src/`、`public/`、`test/`（照技術方案 §9 的順序做） |
 | 5. 人工驗證 | ✅ 第一輪完成：必要功能 F1～F12 全數通過（F10b 未實作，待小組決定） | [`docs/03-驗證紀錄.md`](docs/03-驗證紀錄.md) |
+| 6. 系統維護（2.0） | ✅ 已實作，待小組確認：NO1 揀貨單／放貨單（發單 → 逐站打勾 → 回報，沒回報的每頁提醒）、NO2 整座倉庫盤點（壞掉記原因、每天提醒）、效率評估與作業統計 | [`docs/04-系統維護.md`](docs/04-系統維護.md)、[`docs/05-效率評估.md`](docs/05-效率評估.md)、[`docs/06-維護驗收SOP.md`](docs/06-維護驗收SOP.md) |
 
 ## 先看 Demo
 
@@ -23,9 +24,9 @@
 ```bash
 cp .env.example .env      # 小組統一 MySQL root 密碼 1234，不用改；密碼不同才改 .env 的 DB_PASSWORD
 npm install
-npm run db:init           # 建資料庫 zhunan：7 張表、A/B 兩座庫、36 格、20 種菜
+npm run db:init           # 建資料庫 zhunan：13 張表、A/B 兩座庫、36 格、20 種菜（舊的資料庫跑一次就會補上新表）
 npm run seed              # （選用）灌 Demo 那套假庫存，和 docs/demo 畫面上一模一樣
-npm test                  # 自動測試，會另外建 zhunan_test / zhunan_test_api，不會動到 zhunan
+npm test                  # 自動測試，會另外建 zhunan_test_* 測試庫，不會動到 zhunan
 npm start                 # 開 http://localhost:3000；手機連同一個 Wi-Fi，用終端機印出的網址
 ```
 
@@ -37,7 +38,7 @@ npm start                 # 開 http://localhost:3000；手機連同一個 Wi-Fi
 
 1. 先讀 `AGENTS.md`（背景、老師的觀點、開發流程、技術約束）。
 2. 再讀 `docs/02-技術方案.md`（已確認，不要自己改；要改先討論）。
-3. 照上面「資料庫建置與啟動」把環境裝起來，`npm test` 要 25 項全綠。
+3. 照上面「資料庫建置與啟動」把環境裝起來，`npm test` 要 50 項全綠。
 4. 產品實現（M1～M6）已完成，現在是第 5 階段「人工驗證」。用 Claude Code 開這個資料夾，第一句話：
 
    > 讀 AGENTS.md 和 docs/01-產品方案.md，我們現在在「人工驗證」階段，程式已完成且自動測試全過，請帶我照產品方案 §4 的功能清單一項一項用網頁實際點過，結果寫進 docs/03-驗證紀錄.md。

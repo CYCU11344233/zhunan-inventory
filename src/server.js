@@ -23,6 +23,10 @@ app.use('/api', require('./routes/outbound'));    // POST /api/outbound/plan、/
 app.use('/api', require('./routes/slots'));       // POST /api/transfer、/api/adjust、/api/discard
 app.use('/api', require('./routes/products'));    // POST / PUT / DELETE /api/products
 app.use('/api', require('./routes/undo'));        // POST /api/undo、/api/redo
+app.use('/api', require('./routes/picks'));       // 揀貨單：發單、回報、取消（系統維護 NO1）
+app.use('/api', require('./routes/puts'));        // 放貨單：發單、放好回報、取消（系統維護 NO1）
+app.use('/api', require('./routes/stocktake'));   // 整座倉庫盤點（系統維護 NO2）
+app.use('/api', require('./routes/stats'));       // GET /api/stats：作業效率統計（使用者的抗拒）
 
 // 找不到的 API
 app.use('/api', (req, res) => res.status(404).json({ error: `沒有這個功能：${req.method} ${req.originalUrl}` }));

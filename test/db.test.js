@@ -5,7 +5,7 @@
  * 需要：MySQL 有開、.env 的帳密正確。
  *
  * 測什麼：
- *   1. schema.sql 建出 7 張表、2 座庫、36 格、20 種菜，中文沒有變問號
+ *   1. schema.sql 建出 13 張表、2 座庫、36 格、20 種菜，中文沒有變問號
  *   2. schema.sql 重跑不會壞、不會重複塞主檔、不會動到庫存
  *   3. 資料庫的防呆：負庫存、不存在的櫃位、不存在的 action 都會被擋
  *   4. seed 的資料和 Demo 畫面上的一模一樣（直接跑 docs/demo/index.html 裡的程式來比）
@@ -38,9 +38,9 @@ after(async () => {
   if (conn) await conn.end();
 });
 
-test('1. 建出 7 張表與基本主檔', async () => {
+test('1. 建出 13 張表與基本主檔', async () => {
   const tables = (await q('SHOW TABLES')).map((r) => Object.values(r)[0]).sort();
-  assert.deepEqual(tables, ['action', 'batch', 'movement', 'product', 'slot', 'stock', 'warehouse']);
+  assert.deepEqual(tables, ['action', 'batch', 'movement', 'pick_line', 'pick_order', 'product', 'put_line', 'put_order', 'slot', 'stock', 'stocktake', 'stocktake_line', 'warehouse']);
 
   assert.deepEqual(await q('SELECT code, name, rows_count, levels_count FROM warehouse ORDER BY sort_no'), [
     { code: 'A', name: 'A 庫', rows_count: 6, levels_count: 3 },

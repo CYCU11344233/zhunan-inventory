@@ -12,6 +12,8 @@
 --   warehouse ─< slot ─< stock >─ batch >─ product
 --                          ▲
 --   action ─< movement ────┘（每筆異動記「哪一格 −幾籠、哪一格 +幾籠」）
+--   pick_order ─< pick_line（揀貨單）、put_order ─< put_line（放貨單）：NO1
+--   stocktake ─< stocktake_line（盤點）：NO2
 -- =====================================================================
 
 -- 用 UTF-8 送出本檔，否則在某些電腦上中文（A 庫、甘藍菜）會變成問號
@@ -110,6 +112,110 @@ CREATE TABLE IF NOT EXISTS movement (
   FOREIGN KEY (batch_id)     REFERENCES batch(id),
   FOREIGN KEY (from_slot_id) REFERENCES slot(id),
   FOREIGN KEY (to_slot_id)   REFERENCES slot(id)
+);
+
+-- =====================================================================
+-- 系統維護（驗收與維護.pdf，docs/04-系統維護.md）
+-- =====================================================================
+
+-- 揀貨單（維護 NO1「搬走了卻忘了告訴系統」）
+--   出庫分兩步：先「發單」→ 單子存進資料庫、那幾格的貨被保留（別張單拿不到）；
+--   搬完再「回報」→ 才真的扣庫存。沒回報的單會一直掛著（status = open），
+--   任何一台裝置打開系統都看得到，不會因為關掉頁面就消失。
+--   復原「出庫」時，單子回到 open（貨沒出去 = 單子還沒完成）。
+CREATE TABLE IF NOT EXISTS pick_order (
+  id          INT          AUTO_INCREMENT PRIMARY KEY,
+  label       VARCHAR(120) NOT NULL,             -- '出庫 甘藍菜 6 籠、毛豆 3 籠'
+  status      ENUM('open','done','cancelled') NOT NULL DEFAULT 'open',
+  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- 發單時間
+  finished_at DATETIME     NULL,                 -- 回報或取消的時間
+  action_id   INT          NULL,                 -- 回報時產生的「出庫」action
+  KEY idx_pick_status (status, id),
+  FOREIGN KEY (action_id) REFERENCES action(id)
+);
+
+-- 揀貨單的每一站：去哪一格、拿哪一批、幾籠（seq = 走路順序）
+CREATE TABLE IF NOT EXISTS pick_line (
+  id       INT         AUTO_INCREMENT PRIMARY KEY,
+  pick_id  INT         NOT NULL,
+  seq      TINYINT     NOT NULL,
+  batch_id VARCHAR(20) NOT NULL,
+  slot_id  VARCHAR(10) NOT NULL,
+  qty      INT         NOT NULL,
+  CHECK (qty > 0),
+  KEY idx_pick_line_stock (batch_id, slot_id),   -- 算「這格被保留了幾籠」
+  FOREIGN KEY (pick_id)  REFERENCES pick_order(id),
+  FOREIGN KEY (batch_id) REFERENCES batch(id),
+  FOREIGN KEY (slot_id)  REFERENCES slot(id)
+);
+
+-- 放貨單（維護 NO1 的「進貨」那一半）
+--   入庫也分兩步：先「發單」→ 存進資料庫、那幾個空格被保留（別張單、移位都不能佔）；
+--   員工放好再「回報」→ 才建批次、寫「入庫」異動。回報時可以改成實際放的那一格。
+--   批次的入庫日 = 回報那天（貨真的進庫的日子）。
+CREATE TABLE IF NOT EXISTS put_order (
+  id          INT          AUTO_INCREMENT PRIMARY KEY,
+  label       VARCHAR(120) NOT NULL,             -- '入庫 甘藍菜 5 籠、毛豆 3 籠'
+  status      ENUM('open','done','cancelled') NOT NULL DEFAULT 'open',
+  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  finished_at DATETIME     NULL,
+  action_id   INT          NULL,                 -- 回報時產生的「入庫」action
+  KEY idx_put_status (status, id),
+  FOREIGN KEY (action_id) REFERENCES action(id)
+);
+
+-- 放貨單的每一站：哪個品項幾籠、預定放哪一格、到期日；回報後記下實際放的格子與建出的批次
+CREATE TABLE IF NOT EXISTS put_line (
+  id             INT         AUTO_INCREMENT PRIMARY KEY,
+  put_id         INT         NOT NULL,
+  seq            TINYINT     NOT NULL,           -- 走路順序
+  product_id     INT         NOT NULL,
+  qty            INT         NOT NULL,
+  slot_id        VARCHAR(10) NOT NULL,           -- 預定放的格子（open 時被保留）
+  expire_date    DATE        NOT NULL,
+  custom_expire  TINYINT(1)  NOT NULL DEFAULT 0, -- 到期日是自訂的（不是入庫日 + 保存天數）
+  placed_slot_id VARCHAR(10) NULL,               -- 實際放的格子（回報時填）
+  batch_id       VARCHAR(20) NULL,               -- 回報時建出的批次
+  CHECK (qty > 0),
+  KEY idx_put_line_slot (slot_id),
+  FOREIGN KEY (put_id)         REFERENCES put_order(id),
+  FOREIGN KEY (product_id)     REFERENCES product(id),
+  FOREIGN KEY (slot_id)        REFERENCES slot(id),
+  FOREIGN KEY (placed_slot_id) REFERENCES slot(id),
+  FOREIGN KEY (batch_id)       REFERENCES batch(id)
+);
+
+-- 盤點（維護 NO2「每天對一座倉庫盤點一次」）
+--   一次盤點 = 一座倉庫所有有貨的格子；全部正確也會留下一筆，證明今天盤過了。
+--   數量不符 → 寫「盤點」異動；發現壞掉的 → 寫「丟棄」異動並記原因。兩者合成一個 action，可以復原。
+CREATE TABLE IF NOT EXISTS stocktake (
+  id             INT          AUTO_INCREMENT PRIMARY KEY,
+  warehouse_code CHAR(1)      NOT NULL,
+  created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  slot_count     SMALLINT     NOT NULL,          -- 盤了幾格
+  diff_count     SMALLINT     NOT NULL,          -- 其中數量和系統不符的格數
+  spoiled_qty    INT          NOT NULL DEFAULT 0,  -- 報廢幾籠
+  action_id      INT          NULL,              -- 有改到庫存才有；全部正確就是 NULL
+  KEY idx_stocktake_wh (warehouse_code, id),
+  FOREIGN KEY (warehouse_code) REFERENCES warehouse(code),
+  FOREIGN KEY (action_id)      REFERENCES action(id)
+);
+
+-- 盤點明細：每一格系統說幾籠、實際點到幾籠、其中壞掉幾籠、原因
+CREATE TABLE IF NOT EXISTS stocktake_line (
+  id           INT          AUTO_INCREMENT PRIMARY KEY,
+  stocktake_id INT          NOT NULL,
+  slot_id      VARCHAR(10)  NOT NULL,
+  batch_id     VARCHAR(20)  NOT NULL,
+  system_qty   INT          NOT NULL,
+  counted_qty  INT          NOT NULL,
+  spoiled_qty  INT          NOT NULL DEFAULT 0,
+  reason       VARCHAR(100) NULL,
+  CHECK (counted_qty >= 0),
+  CHECK (spoiled_qty >= 0 AND spoiled_qty <= counted_qty),
+  FOREIGN KEY (stocktake_id) REFERENCES stocktake(id),
+  FOREIGN KEY (slot_id)      REFERENCES slot(id),
+  FOREIGN KEY (batch_id)     REFERENCES batch(id)
 );
 
 -- =====================================================================
