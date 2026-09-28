@@ -45,12 +45,17 @@
   /* 總覽最上面那排數字：置中；滑鼠移到「總籠數」（手機點一下）浮出各庫小計 */
   .stats-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
   .stats-row .stat { flex: 1 1 0; max-width: 200px; min-width: 0; }
-  .stat.has-tip { position: relative; cursor: help; }
-  .stat.has-tip .lbl::after { content: ' ⓘ'; font-size: 12px; }
-  .stat .tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+  /* 浮出提示（滑鼠移上去，或手機點一下）：總籠數的各庫小計、回報按鈕還不能按的原因 */
+  .has-tip { position: relative; }
+  .has-tip .tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
                background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.12);
-               padding: 8px 14px; white-space: nowrap; text-align: left; font-size: 15px; }
-  .stat.has-tip:hover .tip, .stat.has-tip.open .tip { display: block; }
+               padding: 8px 14px; white-space: nowrap; text-align: left; font-size: 15px; color: var(--text); font-weight: normal; }
+  .has-tip:hover .tip, .has-tip.open .tip { display: block; }
+  .stat.has-tip { cursor: help; }
+  .stat.has-tip .lbl::after { content: ' ⓘ'; font-size: 12px; }
+  .btn-tip { display: inline-block; }
+  .btn-tip .tip { top: auto; bottom: calc(100% + 6px); white-space: normal; width: max-content; max-width: 280px; }
+  .btn-tip .btn:disabled { pointer-events: none; }   /* 讓滑鼠事件落到外層，才浮得出提示 */
   .stat .tip div { display: flex; justify-content: space-between; gap: 18px; padding: 3px 0; }
   .stat .tip b { color: var(--primary); }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
@@ -227,8 +232,12 @@
   .stop.done .what { opacity: .6; }
   .stop .what { flex: 1; }
   .stop select { width: auto; font-size: 15px; padding: 6px 8px; margin-top: 4px; }
-  .chk { flex: 0 0 56px; height: 56px; border-radius: 50%; border: 3px solid var(--primary); background: #fff; color: var(--primary); font-size: 22px; font-weight: bold; cursor: pointer; }
+  .stopchk { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .chk { width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--primary); background: #fff; color: var(--primary); font-size: 22px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
   .stop.done .chk { background: var(--primary); color: #fff; }
+  .stopchk label { display: flex; align-items: center; gap: 4px; font-size: 15px; white-space: nowrap; cursor: pointer; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .stopchk input[type=checkbox] { width: 22px; height: 22px; margin: 0; cursor: pointer; accent-color: var(--primary); }
+  .stop select:disabled { color: var(--text); background: #f0f3f5; opacity: 1; cursor: not-allowed; }
   .obtns { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .cell .badge { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); background: #1f2933; color: #fff; font-size: 10px; padding: 0 5px; border-radius: 6px; white-space: nowrap; }
   .cell.held { background: repeating-linear-gradient(45deg, #e8f1f8, #e8f1f8 6px, #d6e6f3 6px, #d6e6f3 12px); border: 2px dashed #2e86c1; color: #2e86c1; }

@@ -509,8 +509,8 @@ function hideSheet() {
 // 點格子以外的地方（面板本身除外）就關閉面板
 document.addEventListener('click', (e) => {
   if (sheetSid && !e.target.closest('#maps .cell') && !e.target.closest('#sheet')) hideSheet();
-  // 手機點開的「各庫小計」：點其他地方就收起來
-  document.querySelectorAll('.stat.has-tip.open').forEach(el => { if (!el.contains(e.target)) el.classList.remove('open'); });
+  // 手機點開的浮出提示（各庫小計、回報按鈕的提示）：點其他地方就收起來
+  document.querySelectorAll('.has-tip.open').forEach(el => { if (!el.contains(e.target)) el.classList.remove('open'); });
 });
 
 // 移位（拖曳）：目標是空格就搬過去；目標有貨就兩格互換

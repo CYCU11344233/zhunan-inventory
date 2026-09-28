@@ -76,14 +76,18 @@ function orderHTML(o) {
       const at = placedOf(o, l);
       // 可以改放的格子：原定的 + 現在空著、沒被別張單預定的
       const choices = [l.slotId, ...freeSlots().map(x => x.id).filter(id => id !== l.slotId)];
-      what = `把 <b>${esc(l.productName)} ${l.qty} 籠</b> 放到 <b>${at}</b>${at !== l.slotId ? `（原定 ${l.slotId}）` : ''}<br>
-        <span class="hint">到期 ${l.expireDate}</span>
-        ${ok ? '' : `<br><select onchange="setPlace('${key}', ${l.seq}, this.value)">
+      // 勾了「放好了」之後選單還留著給人看放在哪，但鎖住不能改（要改先把勾取消）
+      what = `把 <b>${esc(l.productName)} ${l.qty} 籠</b> 放到 <b>${at}</b>${at !== l.slotId ? `（原定 ${l.slotId}）` : ''}
+        <br><select ${ok ? 'disabled' : ''} onchange="setPlace('${key}', ${l.seq}, this.value)">
           ${choices.map(id => `<option value="${id}" ${id === at ? 'selected' : ''}>${id === l.slotId ? `照原定放 ${id}` : `實際放到 ${id}`}</option>`).join('')}
-        </select>`}`;
+        </select>`;
     }
+    // 左邊：大圓圈只顯示第幾站（勾了變 ✔），底下的 checkbox 才是要點的
     return `<div class="stop ${ok ? 'done' : ''}">
-      <button class="chk" onclick="toggleStop('${key}', ${l.seq})" title="${o.kind === 'pick' ? '拿好了' : '放好了'}">${ok ? '✔' : l.seq}</button>
+      <div class="stopchk">
+        <div class="chk">${ok ? '✔' : l.seq}</div>
+        <label><input type="checkbox" ${ok ? 'checked' : ''} onchange="toggleStop('${key}', ${l.seq})">${o.kind === 'pick' ? '拿好了' : '放好了'}</label>
+      </div>
       <div class="what">${what}</div></div>`;
   }).join('');
   const hl = {}; o.lines.forEach(l => hl[o.kind === 'put' ? placedOf(o, l) : l.slotId] = l.seq);
@@ -92,9 +96,11 @@ function orderHTML(o) {
     ${stops}
     <div class="route">${mapHTML({ highlight: hl })}</div>
     <div class="obtns">
-      <button class="btn" ${all ? '' : 'disabled'} onclick="confirmOrder('${key}')">✔ ${o.kind === 'pick' ? '全部拿好了，回報出庫' : '全部放好了，回報入庫'}</button>
+      <span class="has-tip btn-tip" ${all ? '' : `onclick="this.classList.toggle('open')"`}>
+        <button class="btn" ${all ? '' : 'disabled'} onclick="confirmOrder('${key}')">✔ ${o.kind === 'pick' ? '全部拿好了，回報出庫' : '全部放好了，回報入庫'}</button>
+        ${all ? '' : `<span class="tip">每一站都勾選「${o.kind === 'pick' ? '拿好了' : '放好了'}」才能回報<br>（目前 ${done.size} / ${o.lines.length} 站）</span>`}
+      </span>
       <button class="btn secondary" onclick="cancelOrder('${key}')">${cancelArmed === key ? '再按一次確定取消' : '取消這張單'}</button>
-      ${all ? '' : `<span class="hint">每一站${o.kind === 'pick' ? '拿好' : '放好'}就按左邊的圓圈打勾</span>`}
     </div></div></div>`;
 }
 
