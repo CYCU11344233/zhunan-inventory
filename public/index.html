@@ -42,6 +42,17 @@
   .stat .num { font-size: 32px; font-weight: bold; color: var(--primary); }
   .stat .num small { font-size: 16px; color: var(--muted); font-weight: normal; }
   .stat .lbl { color: var(--muted); font-size: 14px; }
+  /* 總覽最上面那排數字：置中；滑鼠移到「總籠數」（手機點一下）浮出各庫小計 */
+  .stats-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+  .stats-row .stat { flex: 1 1 0; max-width: 200px; min-width: 0; }
+  .stat.has-tip { position: relative; cursor: help; }
+  .stat.has-tip .lbl::after { content: ' ⓘ'; font-size: 12px; }
+  .stat .tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+               background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.12);
+               padding: 8px 14px; white-space: nowrap; text-align: left; font-size: 15px; }
+  .stat.has-tip:hover .tip, .stat.has-tip.open .tip { display: block; }
+  .stat .tip div { display: flex; justify-content: space-between; gap: 18px; padding: 3px 0; }
+  .stat .tip b { color: var(--primary); }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
   .bar { height: 26px; border-radius: 999px; background: #e3e7eb; overflow: hidden; display: flex; margin: 8px 0; }
   .bar .used { background: var(--primary); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; }
@@ -191,6 +202,7 @@
     .bin { flex-basis: auto; flex-direction: row; padding: 8px; gap: 10px; }
   }
   @media (max-width: 480px) { .pgrid { grid-template-columns: 1fr; } }
+  @media (max-width: 480px) { .stats-row { gap: 8px; } .stats-row .stat { padding: 12px 4px; } .stat .num { font-size: 26px; } .stat .num small { font-size: 13px; } }
 
   /* ====== 系統維護 2.0：提醒列、待回報的單、盤點、統計 ====== */
   .alerts { max-width: 1000px; margin: 12px auto 0; padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
@@ -268,7 +280,7 @@
 <main>
   <!-- ========== 總覽 ========== -->
   <section class="page" id="page-overview">
-    <div class="grid" id="stats"></div>
+    <div class="stats-row" id="stats"></div>
     <div class="card">
       <h2>櫃位使用率</h2>
       <div class="bar"><div class="used" id="barUsed"></div></div>
