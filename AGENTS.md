@@ -49,6 +49,7 @@
 - 每個階段的文件經人確認（在文件頂端標記 `狀態：已確認`）之後，才能進入下一階段。
 - 產品實現階段不得偷偷更改技術方案；要改先回去改文件。
 - 每完成一個階段就 commit 一次，commit message 用中文，格式：`[階段] 做了什麼`，例如 `[產品設計] 完成產品方案與 demo`。
+- commit message **不要**加 `Co-Authored-By:`、`Claude-Session:` 這類 AI 署名行（Claude Code 已由 `.claude/settings.json` 關掉自動署名；其他工具請自己刪掉）。
 
 ## 3. 領域概念（Ubiquitous Language）
 
