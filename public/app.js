@@ -188,8 +188,13 @@ function renderOverview() {
   const used = slots.length - emptySlots().length;
   const oldCount = live.filter(s => statusOf(batchOf(s)).key === 'danger').length;
   const inStock = activeProducts().filter(p => live.some(s => batchOf(s).productId === p.id)).length;
+  // 各庫小計：櫃位編號第一個字就是庫別（A-03-2 → A 庫）
+  const byWh = WH.map(w => {
+    const ss = live.filter(s => s.slotId.startsWith(w + '-'));
+    return `<div><span>${w} 庫（${ss.length} 格有貨）</span><b>${ss.reduce((a, s) => a + s.qty, 0)} 籠</b></div>`;
+  }).join('');
   document.getElementById('stats').innerHTML = `
-    <div class="card stat"><div class="num">${total}</div><div class="lbl">總籠數</div></div>
+    <div class="card stat has-tip" onclick="this.classList.toggle('open')"><div class="num">${total}</div><div class="lbl">總籠數</div><div class="tip">${byWh}</div></div>
     <div class="card stat"><div class="num">${inStock}<small> / ${activeProducts().length}</small></div><div class="lbl">有貨品項</div></div>
     <div class="card stat"><div class="num" style="color:${oldCount ? 'var(--danger)' : 'var(--ok)'}">${oldCount}</div><div class="lbl">超期批次</div></div>`;
 
@@ -504,6 +509,8 @@ function hideSheet() {
 // 點格子以外的地方（面板本身除外）就關閉面板
 document.addEventListener('click', (e) => {
   if (sheetSid && !e.target.closest('#maps .cell') && !e.target.closest('#sheet')) hideSheet();
+  // 手機點開的浮出提示（各庫小計、回報按鈕的提示）：點其他地方就收起來
+  document.querySelectorAll('.has-tip.open').forEach(el => { if (!el.contains(e.target)) el.classList.remove('open'); });
 });
 
 // 移位（拖曳）：目標是空格就搬過去；目標有貨就兩格互換

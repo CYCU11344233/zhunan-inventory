@@ -1,6 +1,6 @@
 {
   "name": "zhunan-inventory",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "竹南冷凍倉儲 庫存管理系統（1151 系統分析與設計 小組專案）",
   "private": true,
   "main": "src/server.js",
